@@ -12,78 +12,70 @@ package.domain = org.openclaw
 # (str) Source code where the main.py live
 source.dir = .
 
-# (list) Source files to include (let empty to include all the files)
+# (list) Source files to include
 source.include_exts = py,png,jpg,kv,atlas,json,mp3
 
-# (list) Source files to exclude from release (at least one)
+# (list) Source files to exclude from release
 source.exclude_exts = spec,pyc,md
 
-# (str) Application versionning
+# (str) Application version
 version = 1.0.0
 
 # (list) Application requirements
-# pyjnius>=1.5.0 for Python 3 compatibility
-# cython<3.0 for compatibility with kivy/pyjnius
+# pynacl for Ed25519 signing (device authentication)
 # edge-tts for TTS
-requirements = python3,kivy,kivymd,vosk,websockets,pyjnius,edge-tts
-
-# (str) Presplash of the application
-#presplash.filename = %(source.dir)s/presplash.png
+# vosk for wake word
+requirements = python3,kivy,kivymd,vosk,websockets,pyjnius,edge-tts,pynacl
 
 # (str) Icon of the application
 android.icon = icon.png
 
-# (str) Supported orientation (landscape, sensorLandscape, portrait or all)
+# (str) Supported orientation
 orientation = portrait
 
-# (bool) Indicate if the application should be fullscreen or not
+# (bool) Fullscreen mode
 fullscreen = 0
 
 # (list) Permissions
-# RECORD_AUDIO - for wake word and speech recognition
-# FOREGROUND_SERVICE - to keep running when screen is locked
-# WAKE_LOCK - to prevent CPU sleep during listening
-# INTERNET - for gateway connection
-# RECORD_AUDIO for microphone access
-android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,WAKE_LOCK,INTERNET,RECORD_AUDIO
+android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,WAKE_LOCK,INTERNET
 
-# (bool) Enable Android auto backup feature (Android API >=23)
+# (bool) Enable Android auto backup
 android.allow_backup = True
 
-# (str) Android arch to build for
+# (str) Android archs
 android.archs = arm64-v8a, armeabi-v7a
 
-# (str) Android minimum API version
+# (str) Android minimum API
 android.minapi = 24
 
-# (str) Android API version to compile for (ndk version API level)
+# (str) Android API version
 android.api = 33
 
 # (str) Android NDK version
 android.ndk = 25b
 
-# (str) Android SDK path (force use system SDK)
+# (str) Android SDK path
 android.sdk_path = /usr/local/lib/android/sdk
 
 # (str) Android entry point
 android.entry_point = org.kivy.android.PythonActivity
 
-# (str) KivyMD theme
+# (str) Android theme
 android.app_theme = @android:style/Theme.NoTitleBar
 
-# (bool) Copy libraries instead of zipfile
+# (bool) Copy libraries
 android.copy_libs = 1
 
-# (str) The Android logcat filter
+# (str) Android logcat filter
 android.logcat_filters = *:S python:D
 
-# (bool) Enable Kivy debug mode
+# (bool) Debug mode
 android.debuggable = 1
 
 [buildozer]
 
-# (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
+# (int) Log level
 log_level = 2
 
-# (int) Display warning if buildozer is run as root (0 = False, 1 = True)
+# (int) Warn on root
 warn_on_root = 1
