@@ -13,7 +13,10 @@ package.domain = org.openclaw
 source.dir = .
 
 # (list) Source files to include (let empty to include all the files)
-source.include_exts = py,png,jpg,kv,atlas,json
+source.include_exts = py,png,jpg,kv,atlas,json,mp3
+
+# (list) Source files to exclude from release (at least one)
+source.exclude_exts = spec,pyc,md
 
 # (str) Application versionning
 version = 1.0.0
@@ -21,7 +24,14 @@ version = 1.0.0
 # (list) Application requirements
 # pyjnius>=1.5.0 for Python 3 compatibility
 # cython<3.0 for compatibility with kivy/pyjnius
-requirements = python3,kivy,kivymd,vosk,websockets,pyjnius
+# edge-tts for TTS
+requirements = python3,kivy,kivymd,vosk,websockets,pyjnius,edge-tts
+
+# (str) Presplash of the application
+#presplash.filename = %(source.dir)s/presplash.png
+
+# (str) Icon of the application
+android.icon = icon.png
 
 # (str) Supported orientation (landscape, sensorLandscape, portrait or all)
 orientation = portrait
@@ -30,7 +40,12 @@ orientation = portrait
 fullscreen = 0
 
 # (list) Permissions
-android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,WAKE_LOCK,INTERNET
+# RECORD_AUDIO - for wake word and speech recognition
+# FOREGROUND_SERVICE - to keep running when screen is locked
+# WAKE_LOCK - to prevent CPU sleep during listening
+# INTERNET - for gateway connection
+# RECORD_AUDIO for microphone access
+android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,WAKE_LOCK,INTERNET,RECORD_AUDIO
 
 # (bool) Enable Android auto backup feature (Android API >=23)
 android.allow_backup = True
@@ -50,33 +65,20 @@ android.ndk = 25b
 # (str) Android SDK path (force use system SDK)
 android.sdk_path = /usr/local/lib/android/sdk
 
-# (str) Presplash background color (for android)
-# presplash.color = #000000
-
-# (str) Application icon
-android.icon = icon.png
-
-# (str) Application orientation (landscape, portrait, or all)
-# Already set to portrait above
-
-# (str) Fullscreen mode (already set to 0 above)
-
-# (bool) Enable Kivy debug mode
-# android.debuggable = False
-
-# (list) Android additional libraries to copy
-# android.add_libs = None
-
-# (str) The Android arch to build for, already set above
-
-# (str) android entry point, default is ok for Kivy
+# (str) Android entry point
 android.entry_point = org.kivy.android.PythonActivity
 
-# (str) KivyMD requires these
-android.app_theme = "@android:style/Theme.NoTitleBar"
+# (str) KivyMD theme
+android.app_theme = @android:style/Theme.NoTitleBar
 
 # (bool) Copy libraries instead of zipfile
 android.copy_libs = 1
+
+# (str) The Android logcat filter
+android.logcat_filters = *:S python:D
+
+# (bool) Enable Kivy debug mode
+android.debuggable = 1
 
 [buildozer]
 

@@ -1,9 +1,8 @@
 {
-  "gateway_host": "YOUR_SERVER_IP",
+  "gateway_host": "147.93.113.71",
   "gateway_port": 18789,
-  "gateway_token": "YOUR_GATEWAY_TOKEN",
+  "gateway_token": "3cb919b06196e5366f357281542cd3c168c4147946f5e0cd",
   "wake_word": "nova",
-  "wake_word_timeout": 10,
-  "voice": "en-US-JennyNeural",
-  "edge_voice": "en-US-AvaNeural"
+  "voice": "en-US-AvaNeural",
+  "setup_complete": true
 }
