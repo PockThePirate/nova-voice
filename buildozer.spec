@@ -15,6 +15,9 @@ source.dir = .
 # (list) Source files to include
 source.include_exts = py,png,jpg,kv,atlas,json,mp3
 
+# Include assets directory (vosk model)
+android.add_assets = assets
+
 # (list) Source files to exclude from release
 source.exclude_exts = spec,pyc,md
 

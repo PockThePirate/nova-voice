@@ -53,7 +53,7 @@ try:
     from kivy.uix.floatlayout import FloatLayout
     from kivy.uix.scrollview import ScrollView
     from kivy.properties import StringProperty, BooleanProperty
-    from kivy.metrics import dp
+    from kivy.metrics import dp, sp
     from kivy.graphics import Color, Rectangle
     debug_log("Kivy imports OK")
 except Exception as e:
