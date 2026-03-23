@@ -50,10 +50,12 @@ class Config:
         self.defaults = {
             "gateway_host": "127.0.0.1",
             "gateway_port": 18789,
+            "gateway_token": "",
             "wake_word": "nova",
             "wake_word_timeout": 10,
-            "voice": "en-US-JennyNeural",  # Fallback voice
-            "edge_voice": "en-US-AvaNeural",  # Edge TTS voice
+            "voice": "en-US-JennyNeural",
+            "edge_voice": "en-US-AvaNeural",
+            "setup_complete": False,
         }
         self.data = self.load()
 
@@ -76,6 +78,13 @@ class Config:
 
     def get(self, key: str, default=None):
         return self.data.get(key, default if default else self.defaults.get(key))
+
+    def is_configured(self) -> bool:
+        return (
+            self.data.get("setup_complete", False) and
+            bool(self.data.get("gateway_host")) and
+            bool(self.data.get("gateway_token"))
+        )
 
 
 # Global config instance
@@ -218,9 +227,10 @@ class AudioCapture:
 class GatewayClient:
     """WebSocket client for OpenClaw gateway."""
     
-    def __init__(self, host: str, port: int):
+    def __init__(self, host: str, port: int, token: str = None):
         self.host = host
         self.port = port
+        self.token = token
         self.ws: Optional[websockets.WebSocketClientProtocol] = None
         self.connected = False
         self.message_callback = None
@@ -229,7 +239,10 @@ class GatewayClient:
         """Connect to the gateway."""
         try:
             uri = f"ws://{self.host}:{self.port}/ws"
-            self.ws = await websockets.connect(uri)
+            headers = {}
+            if self.token:
+                headers["Authorization"] = f"Bearer {self.token}"
+            self.ws = await websockets.connect(uri, extra_headers=headers)
             self.connected = True
             Logger.info(f"NovaVoice: Connected to gateway at {uri}")
             
@@ -284,7 +297,7 @@ class GatewayClient:
 
 
 class TTSEngine:
-    """Text-to-speech using Edge TTS (Natasha voice)."""
+    """Text-to-speech using Edge TTS."""
     
     def __init__(self, voice: str = "en-US-AvaNeural"):
         self.voice = voice
@@ -323,6 +336,139 @@ class TTSEngine:
             Logger.error(f"NovaVoice: TTS error: {e}")
             self.speaking = False
             return False
+
+
+class SetupScreen(MDScreen):
+    """First-run setup screen."""
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self._build_ui()
+    
+    def _build_ui(self):
+        """Build the setup UI."""
+        layout = BoxLayout(orientation='vertical', padding='24dp', spacing='16dp')
+        
+        # Title
+        layout.add_widget(MDLabel(
+            text="Nova Voice Setup",
+            font_style="H4",
+            size_hint_y=None,
+            height='60dp',
+            halign="center",
+        ))
+        
+        layout.add_widget(MDLabel(
+            text="Enter your gateway settings to connect to Nova.",
+            size_hint_y=None,
+            height='40dp',
+            halign="center",
+            theme_text_color="Secondary",
+        ))
+        
+        # Gateway Host
+        self.host_field = MDTextField(
+            hint_text="Gateway Host (e.g., 192.168.1.100)",
+            text=self.config.get("gateway_host", ""),
+            size_hint_y=None,
+            height='60dp',
+        )
+        layout.add_widget(self.host_field)
+        
+        # Gateway Port
+        self.port_field = MDTextField(
+            hint_text="Gateway Port",
+            text=str(self.config.get("gateway_port", 18789)),
+            input_filter="int",
+            size_hint_y=None,
+            height='60dp',
+        )
+        layout.add_widget(self.port_field)
+        
+        # Gateway Token
+        self.token_field = MDTextField(
+            hint_text="Gateway Token",
+            text=self.config.get("gateway_token", ""),
+            password=True,
+            size_hint_y=None,
+            height='60dp',
+        )
+        layout.add_widget(self.token_field)
+        
+        # Wake Word
+        self.wake_field = MDTextField(
+            hint_text="Wake Word (default: nova)",
+            text=self.config.get("wake_word", "nova"),
+            size_hint_y=None,
+            height='60dp',
+        )
+        layout.add_widget(self.wake_field)
+        
+        # Save button
+        save_btn = MDRaisedButton(
+            text="Save & Connect",
+            size_hint_y=None,
+            height='50dp',
+            on_release=self._save_settings,
+        )
+        layout.add_widget(save_btn)
+        
+        # Add some spacing
+        layout.add_widget(BoxLayout(size_hint_y=None, height='20dp'))
+        
+        # Instructions
+        layout.add_widget(MDLabel(
+            text="You can find your gateway token in ~/.openclaw/openclaw.json on your server.",
+            size_hint_y=None,
+            height='40dp',
+            font_style="Caption",
+            theme_text_color="Secondary",
+        ))
+        
+        self.add_widget(layout)
+    
+    def _save_settings(self, instance):
+        """Save settings and proceed to conversation."""
+        host = self.host_field.text.strip()
+        port_text = self.port_field.text.strip()
+        token = self.token_field.text.strip()
+        wake_word = self.wake_field.text.strip().lower() or "nova"
+        
+        if not host:
+            self._show_error("Please enter a gateway host")
+            return
+        
+        if not token:
+            self._show_error("Please enter a gateway token")
+            return
+        
+        try:
+            port = int(port_text) if port_text else 18789
+        except ValueError:
+            self._show_error("Invalid port number")
+            return
+        
+        # Save config
+        self.config.data["gateway_host"] = host
+        self.config.data["gateway_port"] = port
+        self.config.data["gateway_token"] = token
+        self.config.data["wake_word"] = wake_word
+        self.config.data["setup_complete"] = True
+        self.config.save()
+        
+        # Switch to conversation screen
+        app = MDApp.get_running_app()
+        app.root.current = "conversation"
+    
+    def _show_error(self, message: str):
+        """Show error dialog."""
+        dialog = MDDialog(
+            title="Error",
+            text=message,
+            buttons=[MDRaisedButton(text="OK", on_release=lambda x: dialog.dismiss())],
+        )
+        dialog.open()
 
 
 class ConversationScreen(MDScreen):
@@ -451,6 +597,10 @@ class ConversationScreen(MDScreen):
         
         self.status_text = "Ready - Press Connect"
         self._update_ui()
+        
+        # Auto-connect if configured
+        if self.config.is_configured():
+            Clock.schedule_once(lambda dt: self._on_connect(None), 1.0)
     
     def _start_event_loop(self):
         """Start the async event loop."""
@@ -480,7 +630,8 @@ class ConversationScreen(MDScreen):
             
             self.gateway = GatewayClient(
                 self.config.get("gateway_host"),
-                self.config.get("gateway_port")
+                self.config.get("gateway_port"),
+                self.config.get("gateway_token")
             )
             self.gateway.message_callback = self._on_gateway_message
             
@@ -590,60 +741,9 @@ class ConversationScreen(MDScreen):
     
     def _show_settings(self, instance):
         """Show settings dialog."""
-        # TODO: Implement settings dialog
-        pass
-
-
-class SettingsScreen(MDScreen):
-    """Settings screen."""
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        
-        # Build UI
-        content = BoxLayout(orientation='vertical', padding='16dp', spacing='16dp')
-        
-        # Gateway settings
-        content.add_widget(MDLabel(text="Gateway Settings", font_style="H6"))
-        
-        self.host_field = MDTextField(
-            hint_text="Gateway Host",
-            text=self.config.get("gateway_host"),
-        )
-        content.add_widget(self.host_field)
-        
-        self.port_field = MDTextField(
-            hint_text="Gateway Port",
-            text=str(self.config.get("gateway_port")),
-            input_filter="int",
-        )
-        content.add_widget(self.port_field)
-        
-        # Wake word settings
-        content.add_widget(MDLabel(text="Wake Word Settings", font_style="H6"))
-        
-        self.wake_word_field = MDTextField(
-            hint_text="Wake Word",
-            text=self.config.get("wake_word"),
-        )
-        content.add_widget(self.wake_word_field)
-        
-        # Save button
-        save_btn = MDRaisedButton(
-            text="Save Settings",
-            on_release=self._save_settings,
-        )
-        content.add_widget(save_btn)
-        
-        self.add_widget(content)
-    
-    def _save_settings(self, instance):
-        """Save settings."""
-        self.config.data["gateway_host"] = self.host_field.text
-        self.config.data["gateway_port"] = int(self.port_field.text)
-        self.config.data["wake_word"] = self.wake_word_field.text.lower()
-        self.config.save()
+        # Switch to setup screen
+        app = MDApp.get_running_app()
+        app.root.current = "setup"
 
 
 class NovaVoiceApp(MDApp):
@@ -658,8 +758,14 @@ class NovaVoiceApp(MDApp):
         sm = MDScreenManager()
         
         # Add screens
+        sm.add_widget(SetupScreen(name="setup"))
         sm.add_widget(ConversationScreen(name="conversation"))
-        sm.add_widget(SettingsScreen(name="settings"))
+        
+        # Show setup screen first if not configured
+        if config.is_configured():
+            sm.current = "conversation"
+        else:
+            sm.current = "setup"
         
         return sm
     
