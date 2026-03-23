@@ -48,10 +48,10 @@ jobs:
           mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest || true
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses || true
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
             "platform-tools" \
-            "ndk;25b"
+            "ndk;25.1.8937393"
 
       - name: Build minimal test APK
         run: |

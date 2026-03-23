@@ -59,12 +59,11 @@ android.archs = arm64-v8a, armeabi-v7a
 # (str) Android minimum API
 android.minapi = 24
 
-# (str) Android API version (target API 34 for broad compatibility)
-# Note: S25 Ultra runs Android 16, but apps targeting API 33+ work fine
-android.api = 34
+# (str) Android API version (API 33 is stable and widely supported)
+android.api = 33
 
 # (str) Android NDK version
-android.ndk = 25b
+android.ndk = 25.1.8937393
 
 # (str) Android SDK path (GitHub Actions)
 android.sdk_path = /usr/local/lib/android/sdk
