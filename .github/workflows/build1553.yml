@@ -1,4 +1,4 @@
-name: build1551
+name: build1553
 
 on:
   workflow_dispatch:
@@ -31,9 +31,6 @@ jobs:
 
       - name: Accept licenses and install SDK packages
         run: |
-          # Use pre-installed cmdline-tools from GitHub runner
-          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
-          
           # Accept licenses
           yes | sdkmanager --licenses || true
           
@@ -60,16 +57,6 @@ jobs:
             zip unzip zlib1g-dev libncurses-dev \
             libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
 
-      - name: Verify SDK setup
-        run: |
-          echo "ANDROID_HOME=$ANDROID_HOME"
-          java -version
-          ls -la $ANDROID_HOME/build-tools/ || echo "No build-tools"
-          ls -la $ANDROID_HOME/platforms/ || echo "No platforms"
-          ls -la $ANDROID_HOME/tools/bin/ || echo "No tools/bin"
-          which sdkmanager
-          sdkmanager --version || true
-
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
         run: buildozer android debug
@@ -93,10 +80,3 @@ jobs:
             bin/*.apk
           retention-days: 30
           if-no-files-found: warn
-
-      - name: Upload build log on failure
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: build-log
-          retention-days: 7
