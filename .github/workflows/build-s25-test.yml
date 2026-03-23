@@ -1,0 +1,71 @@
+name: S25 Ultra Minimal Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROIDSDK: /usr/local/lib/android/sdk
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install buildozer
+        run: |
+          pip install buildozer cython==0.29.36
+          pip install "cython<3.0"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf libtool pkg-config \
+            libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake \
+            libffi-dev libssl-dev \
+            automake zip
+
+      - name: Download Android SDK
+        run: |
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          curl -sS https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools || true
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest || true
+          echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
+            "platforms;android-36" \
+            "build-tools;36.0.0" \
+            "platform-tools" \
+            "ndk;27b"
+
+      - name: Build minimal test APK
+        run: |
+          cp main_minimal_v2.py main.py
+          cp buildozer-s25.spec buildozer.spec
+          buildozer android debug 2>&1 | tee build.log
+
+      - name: List output
+        run: ls -la bin/
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-voice-s25-test-apk
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 7

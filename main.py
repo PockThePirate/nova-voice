@@ -495,7 +495,7 @@ class MainScreen(MDScreen):
         
         title = MDLabel(
             text="[b]NOVA VOICE[/b]",
-            font_name="RobotoMono",
+            
             font_size=sp(22),
             markup=True,
             theme_text_color="Custom",
@@ -505,7 +505,7 @@ class MainScreen(MDScreen):
         
         self.status_indicator = MDLabel(
             text="● OFFLINE",
-            font_name="RobotoMono",
+            
             font_size=sp(14),
             halign="right",
             theme_text_color="Custom",
@@ -518,7 +518,7 @@ class MainScreen(MDScreen):
         is_configured = config.is_configured() if config else False
         self.status_label = MDLabel(
             text="Ready to connect" if is_configured else "Please configure in Settings",
-            font_name="RobotoMono",
+            
             font_size=sp(12),
             theme_text_color="Custom",
             text_color=(0.5, 0.7, 0.5, 1),
@@ -545,7 +545,7 @@ class MainScreen(MDScreen):
         
         self.input_field = MDTextField(
             hint_text="Type a message...",
-            font_name="RobotoMono",
+            
             mode="fill",
             fill_color=(0.1, 0.1, 0.15, 1),
             size_hint_x=0.7,
@@ -554,7 +554,7 @@ class MainScreen(MDScreen):
         
         send_btn = MDRaisedButton(
             text="SEND",
-            font_name="RobotoMono",
+            
             font_size=sp(11),
             md_bg_color=(0.1, 0.4, 0.3, 1),
             theme_text_color="Custom",
@@ -574,7 +574,7 @@ class MainScreen(MDScreen):
         
         self.connect_btn = MDRaisedButton(
             text="CONNECT",
-            font_name="RobotoMono",
+            
             font_size=sp(12),
             md_bg_color=(0.1, 0.3, 0.4, 1),
             theme_text_color="Custom",
@@ -586,7 +586,7 @@ class MainScreen(MDScreen):
         
         self.voice_btn = MDRaisedButton(
             text="🎤 VOICE",
-            font_name="RobotoMono",
+            
             font_size=sp(12),
             md_bg_color=(0.15, 0.15, 0.2, 1),
             theme_text_color="Custom",
@@ -602,7 +602,7 @@ class MainScreen(MDScreen):
         # Settings button
         settings_btn = MDRaisedButton(
             text="SETTINGS",
-            font_name="RobotoMono",
+            
             font_size=sp(11),
             md_bg_color=(0.1, 0.1, 0.15, 1),
             theme_text_color="Custom",
@@ -627,7 +627,7 @@ class MainScreen(MDScreen):
         timestamp = datetime.now().strftime("%H:%M")
         item = OneLineListItem(
             text=f"[{timestamp}] {sender}: {text[:100]}",
-            font_name="RobotoMono",
+            
             font_size=sp(10),
         )
         self.chat_list.add_widget(item)
@@ -765,7 +765,7 @@ class SetupScreen(MDScreen):
         
         content.add_widget(MDLabel(
             text="[b]NOVA VOICE[/b]\nSetup",
-            font_name="RobotoMono",
+            
             font_size=sp(24),
             markup=True,
             halign="center",
@@ -779,7 +779,7 @@ class SetupScreen(MDScreen):
         self.host_field = MDTextField(
             hint_text="Gateway Host (e.g., 192.168.1.100)",
             text=self._config.get("gateway_host", "") if self._config else "",
-            font_name="RobotoMono",
+            
             size_hint_y=None,
             height=dp(60),
         )
@@ -789,7 +789,7 @@ class SetupScreen(MDScreen):
         self.port_field = MDTextField(
             hint_text="Port (default: 18789)",
             text=str(self._config.get("gateway_port", 18789) if self._config else 18789),
-            font_name="RobotoMono",
+            
             input_filter="int",
             size_hint_y=None,
             height=dp(60),
@@ -800,7 +800,7 @@ class SetupScreen(MDScreen):
         self.token_field = MDTextField(
             hint_text="Gateway Token",
             text=self._config.get("gateway_token", "") if self._config else "",
-            font_name="RobotoMono",
+            
             password=True,
             size_hint_y=None,
             height=dp(60),
@@ -810,7 +810,7 @@ class SetupScreen(MDScreen):
         # Error label
         self.error_label = MDLabel(
             text="",
-            font_name="RobotoMono",
+            
             font_size=sp(11),
             theme_text_color="Custom",
             text_color=(1, 0.3, 0.3, 1),
@@ -821,7 +821,7 @@ class SetupScreen(MDScreen):
         
         save_btn = MDRaisedButton(
             text="SAVE",
-            font_name="RobotoMono",
+            
             font_size=sp(14),
             md_bg_color=(0.1, 0.4, 0.3, 1),
             theme_text_color="Custom",
