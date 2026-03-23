@@ -1,4 +1,4 @@
-name: build1553
+name: build1555
 
 on:
   workflow_dispatch:
@@ -31,6 +31,9 @@ jobs:
 
       - name: Accept licenses and install SDK packages
         run: |
+          # Add cmdline-tools to PATH
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          
           # Accept licenses
           yes | sdkmanager --licenses || true
           
