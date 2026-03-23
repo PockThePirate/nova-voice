@@ -26,7 +26,7 @@ jobs:
 
       - name: Install buildozer
         run: |
-          pip install buildozer
+          pip install buildozer cython
 
       - name: Install system dependencies
         run: |
