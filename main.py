@@ -12,31 +12,46 @@ import os
 import secrets
 import threading
 import time
+import traceback
 import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-# Debug logging
+# Debug logging - write to file immediately
 DEBUG_FILE = None
+DEBUG_PATH = None
+
+def get_debug_file():
+    global DEBUG_FILE, DEBUG_PATH
+    if DEBUG_FILE is None:
+        try:
+            from jnius import autoclass
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            files_dir = activity.getFilesDir().getAbsolutePath()
+            DEBUG_PATH = f"{files_dir}/debug.log"
+        except:
+            DEBUG_PATH = "/tmp/nova_debug.log"
+        
+        try:
+            DEBUG_FILE = open(DEBUG_PATH, "a")
+        except:
+            DEBUG_FILE = None
+    return DEBUG_FILE
+
 def debug_log(msg):
-    global DEBUG_FILE
+    f = get_debug_file()
     try:
-        if DEBUG_FILE is None:
-            try:
-                if ANDROID_AVAILABLE:
-                    activity = PythonActivity.mActivity
-                    files_dir = activity.getFilesDir().getAbsolutePath()
-                    DEBUG_FILE = open(f"{files_dir}/debug.log", "a")
-                else:
-                    DEBUG_FILE = open("/tmp/nova_debug.log", "a")
-            except:
-                DEBUG_FILE = open("/tmp/nova_debug.log", "a")
-        DEBUG_FILE.write(f"[{datetime.now()}] {msg}\n")
-        DEBUG_FILE.flush()
+        if f:
+            f.write(f"[{datetime.now()}] {msg}\n")
+            f.flush()
     except:
         pass
-    print(f"[DEBUG] {msg}")
+    print(f"[DEBUG] {msg}", flush=True)
+
+debug_log("=== NOVA VOICE STARTING ===")
+debug_log(f"Python: {sys.version}")
 
 # Try imports with fallbacks
 try:
@@ -45,21 +60,27 @@ try:
     debug_log("websockets imported successfully")
 except ImportError as e:
     WEBSOCKETS_AVAILABLE = False
-    debug_log(f"websockets import failed: {e}")
+    debug_log(f"websockets import FAILED: {e}")
 
 # Android imports
 try:
     from jnius import autoclass
     PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    AudioRecord = autoclass('android.media.AudioRecord')
-    MediaRecorder = autoclass('android.media.MediaRecorder')
-    AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
-    AudioFormat = autoclass('android.media.AudioFormat')
     ANDROID_AVAILABLE = True
     debug_log("Android APIs available")
+    try:
+        AudioRecord = autoclass('android.media.AudioRecord')
+        MediaRecorder = autoclass('android.media.MediaRecorder')
+        AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
+        AudioFormat = autoclass('android.media.AudioFormat')
+        debug_log("Audio APIs available")
+    except Exception as e:
+        debug_log(f"Audio APIs failed: {e}")
+        AudioRecord = None
 except ImportError as e:
     ANDROID_AVAILABLE = False
     debug_log(f"Android APIs not available: {e}")
+    AudioRecord = None
 
 # Vosk for speech
 try:
@@ -81,7 +102,7 @@ except ImportError as e:
     debug_log(f"NaCl not available: {e}")
 
 from kivy.app import App
-from kivy.clock import Clock
+from kivy.clock import Clock, mainthread
 from kivy.core.audio import SoundLoader
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, StringProperty
@@ -106,6 +127,7 @@ class Config:
     """Configuration management."""
     
     def __init__(self):
+        debug_log("Config.__init__ start")
         self.config_path = self._get_config_path()
         self.device_key_path = self.config_path.parent / "device_key.json"
         self.defaults = {
@@ -123,11 +145,14 @@ class Config:
     def _get_config_path(self) -> Path:
         try:
             if ANDROID_AVAILABLE:
+                from jnius import autoclass
+                PythonActivity = autoclass('org.kivy.android.PythonActivity')
                 activity = PythonActivity.mActivity
                 files_dir = activity.getFilesDir().getAbsolutePath()
+                debug_log(f"Android files dir: {files_dir}")
                 return Path(files_dir) / "config.json"
-        except:
-            pass
+        except Exception as e:
+            debug_log(f"Error getting Android files dir: {e}")
         return Path(__file__).parent / "config.json"
     
     def _load_device_key(self) -> Optional[Dict]:
@@ -174,9 +199,11 @@ class Config:
             try:
                 with open(self.config_path) as f:
                     loaded = json.load(f)
+                    debug_log(f"Loaded config from {self.config_path}")
                     return {**self.defaults, **loaded}
-            except:
-                pass
+            except Exception as e:
+                debug_log(f"Error loading config: {e}")
+        debug_log("Using default config")
         return self.defaults.copy()
     
     def save(self):
@@ -184,17 +211,21 @@ class Config:
             self.config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(self.config_path, 'w') as f:
                 json.dump(self.data, f, indent=2)
-        except:
-            pass
+            debug_log(f"Saved config to {self.config_path}")
+        except Exception as e:
+            debug_log(f"Error saving config: {e}")
     
     def get(self, key: str, default=None):
         return self.data.get(key, default if default else self.defaults.get(key))
     
     def is_configured(self) -> bool:
-        return bool(self.data.get("gateway_host")) and bool(self.data.get("gateway_token"))
+        result = bool(self.data.get("gateway_host")) and bool(self.data.get("gateway_token"))
+        debug_log(f"is_configured: {result}")
+        return result
 
 
 config = Config()
+debug_log("Config instance created")
 
 
 class GatewayClient:
@@ -250,26 +281,29 @@ class GatewayClient:
             }
         except Exception as e:
             debug_log(f"Error signing challenge: {e}")
+            debug_log(traceback.format_exc())
             return {}
     
     async def connect(self) -> tuple:
+        debug_log(f"GatewayClient.connect() called")
+        
         if not WEBSOCKETS_AVAILABLE:
-            debug_log("websockets not available")
+            debug_log("ERROR: websockets not available")
             return False, "websockets library not available"
         
-        debug_log(f"Connecting to ws://{self.host}:{self.port}/ws")
+        debug_log(f"Attempting connection to ws://{self.host}:{self.port}/ws")
         
         try:
             uri = f"ws://{self.host}:{self.port}/ws"
-            debug_log(f"WebSocket URI: {uri}")
+            debug_log(f"Creating WebSocket connection to: {uri}")
             
             self.ws = await websockets.connect(uri, ping_interval=30, ping_timeout=10)
-            debug_log("WebSocket connected, waiting for challenge...")
+            debug_log("WebSocket connected! Waiting for challenge...")
             
             # Wait for challenge
             try:
                 challenge = await asyncio.wait_for(self.ws.recv(), timeout=10)
-                debug_log(f"Received: {challenge[:200]}")
+                debug_log(f"Received challenge: {challenge[:200]}")
                 challenge_data = json.loads(challenge)
                 
                 if challenge_data.get("event") == "connect.challenge":
@@ -315,8 +349,9 @@ class GatewayClient:
             
             if device_auth:
                 connect_frame["params"]["device"] = device_auth
+                debug_log("Added device auth to connect frame")
             
-            debug_log(f"Sending connect frame...")
+            debug_log("Sending connect frame...")
             await self.ws.send(json.dumps(connect_frame))
             
             # Wait for response
@@ -331,7 +366,7 @@ class GatewayClient:
                         self.authenticated = True
                         self.connected = True
                         self._receive_task = asyncio.create_task(self._receive_loop())
-                        debug_log("Connection successful!")
+                        debug_log("CONNECTION SUCCESSFUL!")
                         return True, "Connected"
                 
                 error = response_data.get("error", {})
@@ -344,7 +379,8 @@ class GatewayClient:
                 return False, "Response timeout"
             
         except Exception as e:
-            debug_log(f"Connection error: {type(e).__name__}: {e}")
+            debug_log(f"Connection ERROR: {type(e).__name__}: {e}")
+            debug_log(traceback.format_exc())
             return False, f"Error: {e}"
     
     async def _receive_loop(self):
@@ -405,27 +441,24 @@ class MainScreen(MDScreen):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        debug_log("MainScreen.__init__")
         self.config = config
         self.gateway = None
         self.audio_capture = None
         self.speech_rec = None
-        self.tts = None
         self.loop = None
         self.event_loop_thread = None
         self.messages = []
         self.is_recording = False
         self.recording_buffer = []
+        self._connect_result = None
         
-        debug_log("MainScreen init")
         Clock.schedule_once(self._build_ui)
     
     def _build_ui(self, dt):
         debug_log("Building UI")
         
-        # Dark background
         root = FloatLayout()
-        
-        # Main content
         content = BoxLayout(orientation='vertical', padding=dp(8), spacing=dp(8))
         
         # Header
@@ -588,7 +621,7 @@ class MainScreen(MDScreen):
             self._add_message("Voice unavailable - model not found.", "system")
         
         # Initialize audio
-        if ANDROID_AVAILABLE:
+        if ANDROID_AVAILABLE and AudioRecord:
             self.audio_capture = AudioCapture()
             debug_log("Audio capture initialized")
         
@@ -597,20 +630,28 @@ class MainScreen(MDScreen):
         
         # Auto-connect
         if self.config.is_configured():
-            debug_log("Config found, auto-connecting...")
+            debug_log("Config found, auto-connecting in 1s...")
             Clock.schedule_once(lambda dt: self._on_connect(None), 1.0)
         else:
             debug_log("No config, showing setup")
     
     def _start_event_loop(self):
-        debug_log("Starting event loop")
+        debug_log("Starting event loop thread")
+        
         def run_loop():
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-            self.loop.run_forever()
+            debug_log("Event loop thread starting")
+            try:
+                self.loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(self.loop)
+                debug_log("Event loop created, running forever...")
+                self.loop.run_forever()
+            except Exception as e:
+                debug_log(f"Event loop error: {e}")
+                debug_log(traceback.format_exc())
         
         self.event_loop_thread = threading.Thread(target=run_loop, daemon=True)
         self.event_loop_thread.start()
+        debug_log("Event loop thread started")
     
     def _add_message(self, text: str, sender: str):
         msg = ChatMessage(text, sender)
@@ -626,12 +667,17 @@ class MainScreen(MDScreen):
         debug_log(f"Message added: [{sender}] {text[:50]}")
     
     def _on_connect(self, instance):
-        debug_log(f"Connect button pressed. Current state: connected={self.gateway and self.gateway.connected}")
+        debug_log(f"_on_connect called. instance={instance}")
+        debug_log(f"Current state: gateway={self.gateway}, connected={self.gateway and self.gateway.connected}")
         
         if self.gateway and self.gateway.connected:
             # Disconnect
             debug_log("Disconnecting...")
-            asyncio.run_coroutine_threadsafe(self.gateway.close(), self.loop)
+            try:
+                future = asyncio.run_coroutine_threadsafe(self.gateway.close(), self.loop)
+                future.result(timeout=5)
+            except Exception as e:
+                debug_log(f"Disconnect error: {e}")
             self.connection_status = "offline"
             self.connect_btn.text = "CONNECT"
             self.voice_btn.disabled = True
@@ -639,6 +685,7 @@ class MainScreen(MDScreen):
             self._add_message("Disconnected", "system")
         else:
             # Connect
+            debug_log("Starting connection...")
             self._update_status("Connecting...")
             self.connection_status = "connecting"
             
@@ -650,13 +697,24 @@ class MainScreen(MDScreen):
             )
             self.gateway.message_callback = self._on_message
             
-            async def do_connect():
-                debug_log(f"Attempting connection to {self.config.get('gateway_host')}:{self.config.get('gateway_port')}")
-                success, message = await self.gateway.connect()
-                debug_log(f"Connection result: success={success}, message={message}")
-                Clock.schedule_once(lambda dt: self._on_connected(success, message))
+            def do_connect():
+                debug_log("do_connect thread starting")
+                try:
+                    future = asyncio.run_coroutine_threadsafe(
+                        self.gateway.connect(),
+                        self.loop
+                    )
+                    result = future.result(timeout=30)
+                    debug_log(f"Connection result: {result}")
+                    Clock.schedule_once(lambda dt: self._on_connected(result[0], result[1]))
+                except Exception as e:
+                    debug_log(f"do_connect error: {e}")
+                    debug_log(traceback.format_exc())
+                    Clock.schedule_once(lambda dt: self._on_connected(False, str(e)))
             
-            asyncio.run_coroutine_threadsafe(do_connect(), self.loop)
+            thread = threading.Thread(target=do_connect, daemon=True)
+            thread.start()
+            debug_log("Connection thread started")
     
     def _on_connected(self, success: bool, message: str):
         debug_log(f"_on_connected: success={success}, message={message}")
@@ -705,7 +763,7 @@ class MainScreen(MDScreen):
             self.voice_btn.md_bg_color = (0.6, 0.2, 0.2, 1)
             self.transcript_label.text = "🎤 Listening..."
             
-            if not self.audio_capture and ANDROID_AVAILABLE:
+            if not self.audio_capture and ANDROID_AVAILABLE and AudioRecord:
                 self.audio_capture = AudioCapture()
             
             if self.audio_capture and self.audio_capture.initialize():
@@ -792,7 +850,7 @@ class AudioCapture:
         self._thread = None
     
     def initialize(self) -> bool:
-        if not ANDROID_AVAILABLE:
+        if not ANDROID_AVAILABLE or not AudioRecord:
             return False
         
         try:
@@ -812,7 +870,8 @@ class AudioCapture:
                 return False
             
             return True
-        except:
+        except Exception as e:
+            debug_log(f"AudioCapture init error: {e}")
             return False
     
     def start(self):
@@ -865,13 +924,16 @@ class SpeechRecognition:
             return False
         
         if not self.model_path.exists():
+            debug_log(f"Vosk model not found at {self.model_path}")
             return False
         
         try:
             self.model = Model(str(self.model_path))
             self.recognizer = KaldiRecognizer(self.model, 16000)
+            debug_log("Speech recognition initialized")
             return True
-        except:
+        except Exception as e:
+            debug_log(f"Vosk init error: {e}")
             return False
     
     def process_audio(self, audio_data: bytes) -> tuple:
@@ -891,49 +953,6 @@ class SpeechRecognition:
     def reset(self):
         if self.model:
             self.recognizer = KaldiRecognizer(self.model, 16000)
-
-
-class TTSEngine:
-    """Edge TTS."""
-    
-    def __init__(self, voice: str = "en-US-AvaNeural"):
-        self.voice = voice
-        self.speaking = False
-        self._cache_dir = Path(__file__).parent / "tts_cache"
-    
-    async def speak(self, text: str) -> bool:
-        if self.speaking or not text:
-            return False
-        
-        self.speaking = True
-        try:
-            import edge_tts
-            
-            self._cache_dir.mkdir(parents=True, exist_ok=True)
-            audio_path = self._cache_dir / "temp_audio.mp3"
-            
-            communicate = edge_tts.Communicate(text, self.voice)
-            await communicate.save(str(audio_path))
-            
-            sound = SoundLoader.load(str(audio_path))
-            if sound:
-                sound.play()
-                import time
-                start = time.time()
-                while sound.state == 'play' and time.time() - start < 120:
-                    await asyncio.sleep(0.1)
-                sound.unload()
-            
-            try:
-                audio_path.unlink()
-            except:
-                pass
-            
-            self.speaking = False
-            return True
-        except:
-            self.speaking = False
-            return False
 
 
 class SetupScreen(MDScreen):
@@ -1007,11 +1026,22 @@ class NovaVoiceApp(MDApp):
         sm.current = "main" if config.is_configured() else "setup"
         debug_log(f"Screen set to: {sm.current}")
         return sm
+    
+    def on_start(self):
+        debug_log("NovaVoiceApp.on_start() called")
+    
+    def on_stop(self):
+        debug_log("NovaVoiceApp.on_stop() called")
 
 
 def main():
     debug_log("main() called")
-    NovaVoiceApp().run()
+    try:
+        NovaVoiceApp().run()
+    except Exception as e:
+        debug_log(f"App crashed: {e}")
+        debug_log(traceback.format_exc())
+        raise
 
 
 if __name__ == "__main__":
