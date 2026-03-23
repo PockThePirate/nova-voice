@@ -59,6 +59,11 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
+      - name: Accept Android SDK licenses
+        run: |
+          yes | sdkmanager --licenses || true
+          yes | sdkmanager "build-tools;33.0.0" "platforms;android-33" || true
+
       - name: Cache buildozer
         uses: actions/cache@v4
         with:
