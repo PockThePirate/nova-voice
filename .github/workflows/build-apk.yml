@@ -56,6 +56,9 @@ jobs:
             libsqlite3-dev \
             liblzma-dev
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Cache buildozer
         uses: actions/cache@v4
         with:
