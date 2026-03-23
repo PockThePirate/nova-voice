@@ -1,0 +1,78 @@
+name: build1448
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install buildozer
+        run: |
+          pip install buildozer
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake cmake gettext libltdl-dev libtool pkg-config \
+            zip unzip zlib1g-dev openjdk-17-jdk libncurses-dev \
+            libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+
+      - name: Accept Android licenses
+        run: |
+          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
+          echo -e "\n24333f8a63b082caecc7685a5e0a8c30" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          echo -e "\n84831b9409646a918e30573bab4c00c9" >> ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+          echo -e "\nd975f751a89e47c832e7ef8c2e5e9b91" >> ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
+        shell: bash
+
+      - name: Build APK (debug)
+        if: github.event.inputs.build_type != 'release'
+        run: |
+          buildozer android debug
+
+      - name: Build APK (release)
+        if: github.event.inputs.build_type == 'release'
+        run: |
+          buildozer android release
+
+      - name: List output
+        if: always()
+        run: |
+          ls -la bin/ || echo "No bin directory"
+          find . -name "*.apk" 2>/dev/null || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nova-voice-apk
+          path: |
+            bin/*.apk
+          retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload build log on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: build-log
+          retention-days: 7
