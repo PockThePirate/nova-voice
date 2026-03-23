@@ -31,7 +31,9 @@ version = 1.0.0
 # Crypto: pynacl (for Ed25519 device auth) - depends on libsodium
 # Note: pynacl requires libsodium which has a p4a recipe
 # Note: vosk requires bundled model in assets/
-requirements = python3,kivy,kivymd,websockets,pyjnius,vosk,pynacl
+# IMPORTANT: Pin kivymd to 1.1.1 to avoid Cairo dependency (breaks Android)
+# See: https://github.com/kivymd/KivyMD/issues/1842
+requirements = python3,kivy==2.3.0,kivymd==1.1.1,websockets==12.0,pyjnius,vosk,pynacl
 
 # (str) Icon of the application
 android.icon = icon.png
