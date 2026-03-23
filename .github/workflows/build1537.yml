@@ -1,4 +1,4 @@
-name: build1535
+name: build1537
 
 on:
   workflow_dispatch:
@@ -25,12 +25,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK components
-        run: sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -39,10 +33,38 @@ jobs:
       - name: Install buildozer
         run: pip install buildozer cython
 
-      - name: Link SDK for buildozer
+      - name: Install system dependencies
         run: |
-          mkdir -p ~/.buildozer/android/platform
-          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf automake cmake gettext libltdl-dev libtool pkg-config \
+            zip unzip zlib1g-dev libncurses-dev \
+            libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
+
+      - name: Setup Android SDK with modern cmdline-tools
+        run: |
+          export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
+          
+          # Download modern command line tools
+          wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
+          unzip -q tools.zip
+          rm tools.zip
+          mv cmdline-tools latest
+          
+          # Add to PATH
+          echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+
+      - name: Accept Android licenses
+        run: |
+          yes | sdkmanager --licenses || true
+
+      - name: Install SDK packages
+        run: |
+          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
