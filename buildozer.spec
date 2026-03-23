@@ -50,6 +50,34 @@ android.ndk = 25b
 # (str) Android SDK path (force use system SDK)
 android.sdk_path = /usr/local/lib/android/sdk
 
+# (str) Presplash background color (for android)
+# presplash.color = #000000
+
+# (str) Application icon
+android.icon = icon.png
+
+# (str) Application orientation (landscape, portrait, or all)
+# Already set to portrait above
+
+# (str) Fullscreen mode (already set to 0 above)
+
+# (bool) Enable Kivy debug mode
+# android.debuggable = False
+
+# (list) Android additional libraries to copy
+# android.add_libs = None
+
+# (str) The Android arch to build for, already set above
+
+# (str) android entry point, default is ok for Kivy
+android.entry_point = org.kivy.android.PythonActivity
+
+# (str) KivyMD requires these
+android.app_theme = "@android:style/Theme.NoTitleBar"
+
+# (bool) Copy libraries instead of zipfile
+android.copy_libs = 1
+
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
