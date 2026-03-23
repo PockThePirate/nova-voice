@@ -45,6 +45,9 @@ android.api = 33
 # (str) Android NDK version
 android.ndk = 25b
 
+# (str) Android SDK path (force use system SDK)
+android.sdk_path = /usr/local/lib/android/sdk
+
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
