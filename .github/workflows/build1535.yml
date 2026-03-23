@@ -1,4 +1,4 @@
-name: build1531
+name: build1535
 
 on:
   workflow_dispatch:
@@ -15,12 +15,21 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    env:
-      ANDROID_HOME: /usr/local/lib/android/sdk
-      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK components
+        run: sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -28,39 +37,20 @@ jobs:
           python-version: '3.11'
 
       - name: Install buildozer
-        run: |
-          pip install buildozer cython
+        run: pip install buildozer cython
 
-      - name: Install system dependencies
+      - name: Link SDK for buildozer
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            autoconf automake cmake gettext libltdl-dev libtool pkg-config \
-            zip unzip zlib1g-dev openjdk-17-jdk libncurses-dev \
-            libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
-
-      - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
-
-      - name: Install Android SDK components
-        run: |
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+          mkdir -p ~/.buildozer/android/platform
+          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
-        run: |
-          # Tell buildozer to use the pre-installed SDK
-          mkdir -p ~/.buildozer/android/platform
-          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
-          buildozer android debug
+        run: buildozer android debug
 
       - name: Build APK (release)
         if: github.event.inputs.build_type == 'release'
-        run: |
-          mkdir -p ~/.buildozer/android/platform
-          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
-          buildozer android release
+        run: buildozer android release
 
       - name: List output
         if: always()
