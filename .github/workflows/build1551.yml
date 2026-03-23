@@ -1,4 +1,4 @@
-name: build1548
+name: build1551
 
 on:
   workflow_dispatch:
@@ -23,19 +23,26 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java 11 (for old Android SDK tools compatibility)
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '11'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+          java-version: '17'
 
       - name: Accept licenses and install SDK packages
         run: |
-          yes | sdkmanager --licenses
+          # Use pre-installed cmdline-tools from GitHub runner
+          export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$PATH"
+          
+          # Accept licenses
+          yes | sdkmanager --licenses || true
+          
+          # Install required packages
           sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+          
+          # Create symlink for buildozer (it expects tools/bin/sdkmanager)
+          mkdir -p $ANDROID_HOME/tools/bin
+          ln -sf $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager $ANDROID_HOME/tools/bin/sdkmanager
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -59,6 +66,9 @@ jobs:
           java -version
           ls -la $ANDROID_HOME/build-tools/ || echo "No build-tools"
           ls -la $ANDROID_HOME/platforms/ || echo "No platforms"
+          ls -la $ANDROID_HOME/tools/bin/ || echo "No tools/bin"
+          which sdkmanager
+          sdkmanager --version || true
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
