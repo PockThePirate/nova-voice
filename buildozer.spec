@@ -19,7 +19,9 @@ source.include_exts = py,png,jpg,kv,atlas,json
 version = 1.0.0
 
 # (list) Application requirements
-requirements = python3,kivy,kivymd,vosk,websockets
+# pyjnius>=1.5.0 for Python 3 compatibility
+# cython<3.0 for compatibility with kivy/pyjnius
+requirements = python3,kivy,kivymd,vosk,websockets,pyjnius
 
 # (str) Supported orientation (landscape, sensorLandscape, portrait or all)
 orientation = portrait

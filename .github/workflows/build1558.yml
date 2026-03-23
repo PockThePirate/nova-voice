@@ -1,4 +1,4 @@
-name: build1555
+name: build1558
 
 on:
   workflow_dispatch:
@@ -49,8 +49,8 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install buildozer
-        run: pip install buildozer cython
+      - name: Install buildozer with Cython < 3
+        run: pip install 'buildozer' 'cython<3.0'
 
       - name: Install system dependencies
         run: |
