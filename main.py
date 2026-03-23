@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Nova Voice - OpenClaw Node Client (Simplified)
+Nova Voice - OpenClaw Node Client (Debug Build)
 Mission control interface with voice and chat.
 """
 
@@ -12,9 +12,73 @@ import os
 import secrets
 import threading
 import time
+import sys
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any, List
+
+# Debug logging
+DEBUG_FILE = None
+def debug_log(msg):
+    global DEBUG_FILE
+    try:
+        if DEBUG_FILE is None:
+            try:
+                if ANDROID_AVAILABLE:
+                    activity = PythonActivity.mActivity
+                    files_dir = activity.getFilesDir().getAbsolutePath()
+                    DEBUG_FILE = open(f"{files_dir}/debug.log", "a")
+                else:
+                    DEBUG_FILE = open("/tmp/nova_debug.log", "a")
+            except:
+                DEBUG_FILE = open("/tmp/nova_debug.log", "a")
+        DEBUG_FILE.write(f"[{datetime.now()}] {msg}\n")
+        DEBUG_FILE.flush()
+    except:
+        pass
+    print(f"[DEBUG] {msg}")
+
+# Try imports with fallbacks
+try:
+    import websockets
+    WEBSOCKETS_AVAILABLE = True
+    debug_log("websockets imported successfully")
+except ImportError as e:
+    WEBSOCKETS_AVAILABLE = False
+    debug_log(f"websockets import failed: {e}")
+
+# Android imports
+try:
+    from jnius import autoclass
+    PythonActivity = autoclass('org.kivy.android.PythonActivity')
+    AudioRecord = autoclass('android.media.AudioRecord')
+    MediaRecorder = autoclass('android.media.MediaRecorder')
+    AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
+    AudioFormat = autoclass('android.media.AudioFormat')
+    ANDROID_AVAILABLE = True
+    debug_log("Android APIs available")
+except ImportError as e:
+    ANDROID_AVAILABLE = False
+    debug_log(f"Android APIs not available: {e}")
+
+# Vosk for speech
+try:
+    from vosk import Model, KaldiRecognizer, SetLogLevel
+    SetLogLevel(-1)
+    VOSK_AVAILABLE = True
+    debug_log("Vosk imported successfully")
+except ImportError as e:
+    VOSK_AVAILABLE = False
+    debug_log(f"Vosk not available: {e}")
+
+# NaCl for auth
+try:
+    from nacl.signing import SigningKey
+    NACL_AVAILABLE = True
+    debug_log("NaCl imported successfully")
+except ImportError as e:
+    NACL_AVAILABLE = False
+    debug_log(f"NaCl not available: {e}")
 
 from kivy.app import App
 from kivy.clock import Clock
@@ -35,39 +99,7 @@ from kivymd.uix.screenmanager import MDScreenManager
 from kivymd.uix.textfield import MDTextField
 from kivymd.uix.list import MDList, OneLineListItem
 
-# Try imports with fallbacks
-try:
-    import websockets
-    WEBSOCKETS_AVAILABLE = True
-except ImportError:
-    WEBSOCKETS_AVAILABLE = False
-
-# Android imports
-try:
-    from jnius import autoclass
-    PythonActivity = autoclass('org.kivy.android.PythonActivity')
-    AudioRecord = autoclass('android.media.AudioRecord')
-    MediaRecorder = autoclass('android.media.MediaRecorder')
-    AudioSource = autoclass('android.media.MediaRecorder$AudioSource')
-    AudioFormat = autoclass('android.media.AudioFormat')
-    ANDROID_AVAILABLE = True
-except ImportError:
-    ANDROID_AVAILABLE = False
-
-# Vosk for speech
-try:
-    from vosk import Model, KaldiRecognizer, SetLogLevel
-    SetLogLevel(-1)
-    VOSK_AVAILABLE = True
-except ImportError:
-    VOSK_AVAILABLE = False
-
-# NaCl for auth
-try:
-    from nacl.signing import SigningKey
-    NACL_AVAILABLE = True
-except ImportError:
-    NACL_AVAILABLE = False
+debug_log(f"Imports complete: websockets={WEBSOCKETS_AVAILABLE}, android={ANDROID_AVAILABLE}, vosk={VOSK_AVAILABLE}, nacl={NACL_AVAILABLE}")
 
 
 class Config:
@@ -86,6 +118,7 @@ class Config:
         }
         self.data = self.load()
         self.device_key = self._load_device_key()
+        debug_log(f"Config loaded: host={self.data.get('gateway_host')}, port={self.data.get('gateway_port')}")
     
     def _get_config_path(self) -> Path:
         try:
@@ -99,14 +132,17 @@ class Config:
     
     def _load_device_key(self) -> Optional[Dict]:
         if not NACL_AVAILABLE:
+            debug_log("NaCl not available, skipping device key")
             return None
         
         try:
             if self.device_key_path.exists():
                 with open(self.device_key_path) as f:
-                    return json.load(f)
-        except:
-            pass
+                    key_data = json.load(f)
+                    debug_log(f"Loaded existing device key: {key_data.get('device_id')}")
+                    return key_data
+        except Exception as e:
+            debug_log(f"Error loading device key: {e}")
         
         # Generate new keypair
         try:
@@ -124,11 +160,13 @@ class Config:
                 self.device_key_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(self.device_key_path, 'w') as f:
                     json.dump(key_data, f)
-            except:
-                pass
+                debug_log(f"Generated new device key: {key_data.get('device_id')}")
+            except Exception as e:
+                debug_log(f"Error saving device key: {e}")
             
             return key_data
-        except:
+        except Exception as e:
+            debug_log(f"Error generating device key: {e}")
             return None
     
     def load(self) -> dict:
@@ -176,6 +214,7 @@ class GatewayClient:
         self.message_callback = None
         self._receive_task = None
         self._request_id = 0
+        debug_log(f"GatewayClient created: {host}:{port}")
     
     def _next_request_id(self) -> str:
         self._request_id += 1
@@ -183,6 +222,7 @@ class GatewayClient:
     
     def _sign_challenge(self, nonce: str, ts: int) -> Dict[str, Any]:
         if not self.device_key:
+            debug_log("No device key, skipping signing")
             return {}
         
         try:
@@ -200,6 +240,7 @@ class GatewayClient:
             signed = signing_key.sign(payload.encode())
             signature = base64.b64encode(signed.signature).decode()
             
+            debug_log(f"Signed challenge for device: {self.device_key['device_id']}")
             return {
                 "id": self.device_key["device_id"],
                 "publicKey": self.device_key["public_key"],
@@ -207,32 +248,43 @@ class GatewayClient:
                 "signedAt": int(time.time() * 1000),
                 "nonce": nonce
             }
-        except:
+        except Exception as e:
+            debug_log(f"Error signing challenge: {e}")
             return {}
     
     async def connect(self) -> tuple:
         if not WEBSOCKETS_AVAILABLE:
+            debug_log("websockets not available")
             return False, "websockets library not available"
+        
+        debug_log(f"Connecting to ws://{self.host}:{self.port}/ws")
         
         try:
             uri = f"ws://{self.host}:{self.port}/ws"
+            debug_log(f"WebSocket URI: {uri}")
+            
             self.ws = await websockets.connect(uri, ping_interval=30, ping_timeout=10)
+            debug_log("WebSocket connected, waiting for challenge...")
             
             # Wait for challenge
             try:
                 challenge = await asyncio.wait_for(self.ws.recv(), timeout=10)
+                debug_log(f"Received: {challenge[:200]}")
                 challenge_data = json.loads(challenge)
                 
                 if challenge_data.get("event") == "connect.challenge":
                     payload = challenge_data.get("payload", {})
                     nonce = payload.get("nonce", secrets.token_hex(16))
                     ts = payload.get("ts", int(time.time() * 1000))
+                    debug_log(f"Got challenge nonce: {nonce[:20]}...")
                 else:
                     nonce = secrets.token_hex(16)
                     ts = int(time.time() * 1000)
+                    debug_log("No challenge event, using random nonce")
             except asyncio.TimeoutError:
                 nonce = secrets.token_hex(16)
                 ts = int(time.time() * 1000)
+                debug_log("Challenge timeout, using random nonce")
             
             # Build connect frame
             device_auth = self._sign_challenge(nonce, ts)
@@ -264,30 +316,39 @@ class GatewayClient:
             if device_auth:
                 connect_frame["params"]["device"] = device_auth
             
+            debug_log(f"Sending connect frame...")
             await self.ws.send(json.dumps(connect_frame))
             
             # Wait for response
-            response = await asyncio.wait_for(self.ws.recv(), timeout=10)
-            response_data = json.loads(response)
+            try:
+                response = await asyncio.wait_for(self.ws.recv(), timeout=10)
+                debug_log(f"Received response: {response[:500]}")
+                response_data = json.loads(response)
+                
+                if response_data.get("type") == "res" and response_data.get("ok"):
+                    payload = response_data.get("payload", {})
+                    if payload.get("type") == "hello-ok":
+                        self.authenticated = True
+                        self.connected = True
+                        self._receive_task = asyncio.create_task(self._receive_loop())
+                        debug_log("Connection successful!")
+                        return True, "Connected"
+                
+                error = response_data.get("error", {})
+                code = error.get("details", {}).get("code", error.get("message", "Auth failed"))
+                debug_log(f"Connection failed: {code}")
+                return False, f"Auth failed: {code}"
+                
+            except asyncio.TimeoutError:
+                debug_log("Response timeout")
+                return False, "Response timeout"
             
-            if response_data.get("type") == "res" and response_data.get("ok"):
-                payload = response_data.get("payload", {})
-                if payload.get("type") == "hello-ok":
-                    self.authenticated = True
-                    self.connected = True
-                    self._receive_task = asyncio.create_task(self._receive_loop())
-                    return True, "Connected"
-            
-            error = response_data.get("error", {})
-            code = error.get("details", {}).get("code", error.get("message", "Auth failed"))
-            return False, f"Auth failed: {code}"
-            
-        except asyncio.TimeoutError:
-            return False, "Connection timeout"
         except Exception as e:
+            debug_log(f"Connection error: {type(e).__name__}: {e}")
             return False, f"Error: {e}"
     
     async def _receive_loop(self):
+        debug_log("Receive loop started")
         try:
             async for message in self.ws:
                 try:
@@ -303,10 +364,10 @@ class GatewayClient:
                             sender = payload.get("sender", "") or payload.get("role", "")
                             if text and self.message_callback:
                                 Clock.schedule_once(lambda dt, t=text, s=sender: self.message_callback(t, s))
-                except:
-                    pass
-        except:
-            pass
+                except Exception as e:
+                    debug_log(f"Receive error: {e}")
+        except Exception as e:
+            debug_log(f"Receive loop ended: {e}")
         finally:
             self.connected = False
             self.authenticated = False
@@ -334,6 +395,389 @@ class GatewayClient:
             await self.ws.close()
         self.connected = False
         self.authenticated = False
+
+
+class MainScreen(MDScreen):
+    """Main chat screen."""
+    
+    connection_status = StringProperty("offline")
+    is_listening = BooleanProperty(False)
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.config = config
+        self.gateway = None
+        self.audio_capture = None
+        self.speech_rec = None
+        self.tts = None
+        self.loop = None
+        self.event_loop_thread = None
+        self.messages = []
+        self.is_recording = False
+        self.recording_buffer = []
+        
+        debug_log("MainScreen init")
+        Clock.schedule_once(self._build_ui)
+    
+    def _build_ui(self, dt):
+        debug_log("Building UI")
+        
+        # Dark background
+        root = FloatLayout()
+        
+        # Main content
+        content = BoxLayout(orientation='vertical', padding=dp(8), spacing=dp(8))
+        
+        # Header
+        header = BoxLayout(size_hint_y=None, height=dp(50))
+        
+        title = MDLabel(
+            text="[b]NOVA VOICE[/b]",
+            font_name="RobotoMono",
+            font_size=sp(18),
+            markup=True,
+            theme_text_color="Custom",
+            text_color=(0.4, 0.8, 1, 1),
+            size_hint_x=0.5,
+        )
+        header.add_widget(title)
+        
+        self.status_label = MDLabel(
+            text="● OFFLINE",
+            font_name="RobotoMono",
+            font_size=sp(14),
+            halign="right",
+            theme_text_color="Custom",
+            text_color=(1, 0.3, 0.3, 1),
+            size_hint_x=0.5,
+        )
+        header.add_widget(self.status_label)
+        content.add_widget(header)
+        
+        # Status bar
+        status_bar = MDCard(
+            elevation=0,
+            md_bg_color=(0.05, 0.1, 0.15, 0.9),
+            radius=[dp(8)],
+            size_hint_y=None,
+            height=dp(40),
+        )
+        self.status_text = MDLabel(
+            text="Ready to connect",
+            font_name="RobotoMono",
+            font_size=sp(12),
+            theme_text_color="Custom",
+            text_color=(0.3, 0.8, 0.5, 1),
+        )
+        status_bar.add_widget(self.status_text)
+        content.add_widget(status_bar)
+        
+        # Chat area
+        chat_card = MDCard(
+            elevation=0,
+            md_bg_color=(0.03, 0.06, 0.1, 0.95),
+            radius=[dp(8)],
+        )
+        chat_layout = BoxLayout(orientation='vertical', padding=dp(8))
+        
+        self.chat_scroll = ScrollView()
+        self.chat_list = MDList()
+        self.chat_scroll.add_widget(self.chat_list)
+        chat_layout.add_widget(self.chat_scroll)
+        
+        # Transcript
+        self.transcript_label = MDLabel(
+            text="",
+            font_name="RobotoMono",
+            font_size=sp(14),
+            halign="center",
+            theme_text_color="Custom",
+            text_color=(0.4, 0.6, 0.8, 1),
+            size_hint_y=None,
+            height=dp(40),
+        )
+        chat_layout.add_widget(self.transcript_label)
+        
+        # Input
+        input_layout = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(8))
+        
+        self.message_input = MDTextField(
+            hint_text="Type a message...",
+            font_name="RobotoMono",
+            size_hint_x=0.7,
+            mode="fill",
+            fill_color=(0.1, 0.15, 0.2, 1),
+        )
+        input_layout.add_widget(self.message_input)
+        
+        send_btn = MDRaisedButton(
+            text="SEND",
+            font_name="RobotoMono",
+            font_size=sp(12),
+            md_bg_color=(0.1, 0.4, 0.3, 1),
+            theme_text_color="Custom",
+            text_color=(0.2, 1, 0.6, 1),
+            size_hint_x=0.3,
+            elevation=0,
+        )
+        send_btn.bind(on_release=self._send_message)
+        input_layout.add_widget(send_btn)
+        
+        chat_layout.add_widget(input_layout)
+        chat_card.add_widget(chat_layout)
+        content.add_widget(chat_card)
+        
+        # Buttons
+        controls = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(8))
+        
+        self.connect_btn = MDRaisedButton(
+            text="CONNECT",
+            font_name="RobotoMono",
+            md_bg_color=(0.1, 0.3, 0.4, 1),
+            theme_text_color="Custom",
+            text_color=(0.4, 0.8, 1, 1),
+            elevation=0,
+        )
+        self.connect_btn.bind(on_release=self._on_connect)
+        controls.add_widget(self.connect_btn)
+        
+        self.voice_btn = MDRaisedButton(
+            text="🎤 VOICE",
+            font_name="RobotoMono",
+            md_bg_color=(0.15, 0.15, 0.2, 1),
+            theme_text_color="Custom",
+            text_color=(0.6, 0.6, 0.7, 1),
+            elevation=0,
+            disabled=True,
+        )
+        self.voice_btn.bind(on_release=self._toggle_voice)
+        controls.add_widget(self.voice_btn)
+        
+        content.add_widget(controls)
+        
+        # Settings
+        settings_btn = MDRaisedButton(
+            text="SETTINGS",
+            font_name="RobotoMono",
+            md_bg_color=(0.1, 0.1, 0.15, 1),
+            theme_text_color="Custom",
+            text_color=(0.5, 0.5, 0.6, 1),
+            elevation=0,
+            size_hint_y=None,
+            height=dp(40),
+        )
+        settings_btn.bind(on_release=self._show_settings)
+        content.add_widget(settings_btn)
+        
+        root.add_widget(content)
+        self.add_widget(root)
+        debug_log("UI built")
+    
+    def _initialize(self, dt):
+        debug_log("Initializing...")
+        
+        # Initialize speech recognition
+        model_path = Path(__file__).parent / "assets" / "vosk-model-small-en-us-0.15"
+        if not model_path.exists():
+            model_path = Path(__file__).parent / "vosk-model-small-en-us-0.15"
+        
+        self.speech_rec = SpeechRecognition(model_path)
+        if self.speech_rec.initialize():
+            self._add_message("Voice ready. Say 'Hey Nova' to start.", "system")
+        else:
+            self._add_message("Voice unavailable - model not found.", "system")
+        
+        # Initialize audio
+        if ANDROID_AVAILABLE:
+            self.audio_capture = AudioCapture()
+            debug_log("Audio capture initialized")
+        
+        # Start event loop
+        self._start_event_loop()
+        
+        # Auto-connect
+        if self.config.is_configured():
+            debug_log("Config found, auto-connecting...")
+            Clock.schedule_once(lambda dt: self._on_connect(None), 1.0)
+        else:
+            debug_log("No config, showing setup")
+    
+    def _start_event_loop(self):
+        debug_log("Starting event loop")
+        def run_loop():
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
+            self.loop.run_forever()
+        
+        self.event_loop_thread = threading.Thread(target=run_loop, daemon=True)
+        self.event_loop_thread.start()
+    
+    def _add_message(self, text: str, sender: str):
+        msg = ChatMessage(text, sender)
+        self.messages.append(msg)
+        
+        item = OneLineListItem(
+            text=f"[{msg.timestamp.strftime('%H:%M')}] {text[:80]}",
+            font_name="RobotoMono",
+            font_size=sp(11),
+        )
+        self.chat_list.add_widget(item)
+        self.chat_scroll.scroll_y = 0
+        debug_log(f"Message added: [{sender}] {text[:50]}")
+    
+    def _on_connect(self, instance):
+        debug_log(f"Connect button pressed. Current state: connected={self.gateway and self.gateway.connected}")
+        
+        if self.gateway and self.gateway.connected:
+            # Disconnect
+            debug_log("Disconnecting...")
+            asyncio.run_coroutine_threadsafe(self.gateway.close(), self.loop)
+            self.connection_status = "offline"
+            self.connect_btn.text = "CONNECT"
+            self.voice_btn.disabled = True
+            self._update_status("Disconnected")
+            self._add_message("Disconnected", "system")
+        else:
+            # Connect
+            self._update_status("Connecting...")
+            self.connection_status = "connecting"
+            
+            self.gateway = GatewayClient(
+                self.config.get("gateway_host"),
+                self.config.get("gateway_port"),
+                self.config.get("gateway_token"),
+                self.config.device_key
+            )
+            self.gateway.message_callback = self._on_message
+            
+            async def do_connect():
+                debug_log(f"Attempting connection to {self.config.get('gateway_host')}:{self.config.get('gateway_port')}")
+                success, message = await self.gateway.connect()
+                debug_log(f"Connection result: success={success}, message={message}")
+                Clock.schedule_once(lambda dt: self._on_connected(success, message))
+            
+            asyncio.run_coroutine_threadsafe(do_connect(), self.loop)
+    
+    def _on_connected(self, success: bool, message: str):
+        debug_log(f"_on_connected: success={success}, message={message}")
+        if success:
+            self.connection_status = "online"
+            self.connect_btn.text = "DISCONNECT"
+            self.voice_btn.disabled = False
+            self._update_status(f"Connected to {self.config.get('gateway_host')}")
+            self._add_message("Connected to Nova.", "system")
+        else:
+            self.connection_status = "offline"
+            self._update_status(f"Failed: {message}")
+            self._add_message(f"Connection failed: {message}", "system")
+    
+    def _on_message(self, text: str, sender: str):
+        if sender == "assistant":
+            self._add_message(text, "assistant")
+    
+    def _send_message(self, instance):
+        text = self.message_input.text.strip()
+        if not text:
+            return
+        
+        self.message_input.text = ""
+        self._add_message(text, "user")
+        
+        if self.gateway and self.gateway.connected:
+            async def send():
+                await self.gateway.send_message(text)
+            asyncio.run_coroutine_threadsafe(send(), self.loop)
+        else:
+            self._add_message("Not connected.", "system")
+    
+    def _toggle_voice(self, instance):
+        if self.is_listening:
+            self.is_listening = False
+            self.is_recording = False
+            self.voice_btn.text = "🎤 VOICE"
+            self.voice_btn.md_bg_color = (0.15, 0.15, 0.2, 1)
+            self.transcript_label.text = ""
+            if self.audio_capture:
+                self.audio_capture.stop()
+        else:
+            self.is_listening = True
+            self.voice_btn.text = "⏹ STOP"
+            self.voice_btn.md_bg_color = (0.6, 0.2, 0.2, 1)
+            self.transcript_label.text = "🎤 Listening..."
+            
+            if not self.audio_capture and ANDROID_AVAILABLE:
+                self.audio_capture = AudioCapture()
+            
+            if self.audio_capture and self.audio_capture.initialize():
+                self.audio_capture.audio_callback = self._on_audio
+                self.audio_capture.start()
+            else:
+                self._add_message("Audio unavailable.", "system")
+                self.is_listening = False
+                self.voice_btn.text = "🎤 VOICE"
+    
+    def _on_audio(self, audio_data: bytes):
+        if not self.is_listening:
+            return
+        
+        if self.speech_rec:
+            is_final, text = self.speech_rec.process_audio(audio_data)
+            
+            if is_final and text:
+                wake_word = self.config.get("wake_word", "nova").lower()
+                
+                if not self.is_recording and wake_word in text.lower():
+                    self.is_recording = True
+                    self.recording_buffer = []
+                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Wake word! Listening..."))
+                    self.speech_rec.reset()
+                
+                elif self.is_recording:
+                    self.recording_buffer.append(text)
+                    full_text = " ".join(self.recording_buffer)
+                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', f"🎤 {full_text}"))
+                    
+                    if len(full_text) > 5:
+                        Clock.schedule_once(lambda dt: self._send_voice(full_text), 1.0)
+                        self.is_recording = False
+                        self.speech_rec.reset()
+    
+    def _send_voice(self, text: str):
+        if not text.strip():
+            return
+        
+        self._add_message(text, "user")
+        
+        if self.gateway and self.gateway.connected:
+            async def send():
+                await self.gateway.send_message(text)
+            asyncio.run_coroutine_threadsafe(send(), self.loop)
+        
+        self.recording_buffer = []
+        Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Listening..."))
+    
+    def _update_status(self, message: str):
+        self.status_text.text = message
+        
+        colors = {"offline": (1, 0.3, 0.3, 1), "connecting": (1, 0.8, 0.2, 1), "online": (0.2, 1, 0.6, 1)}
+        color = colors.get(self.connection_status, (0.5, 0.5, 0.5, 1))
+        self.status_label.text = f"● {self.connection_status.upper()}"
+        self.status_label.text_color = color
+    
+    def _show_settings(self, instance):
+        MDApp.get_running_app().root.current = "setup"
+    
+    def on_enter(self):
+        debug_log("on_enter called")
+        if not hasattr(self, 'loop'):
+            Clock.schedule_once(self._initialize, 0.5)
+
+
+class ChatMessage:
+    def __init__(self, text: str, sender: str):
+        self.text = text
+        self.sender = sender
+        self.timestamp = datetime.now()
 
 
 class AudioCapture:
@@ -492,377 +936,6 @@ class TTSEngine:
             return False
 
 
-class MainScreen(MDScreen):
-    """Main chat screen."""
-    
-    connection_status = StringProperty("offline")
-    is_listening = BooleanProperty(False)
-    
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.config = config
-        self.gateway = None
-        self.audio_capture = None
-        self.speech_rec = None
-        self.tts = None
-        self.loop = None
-        self.event_loop_thread = None
-        self.messages = []
-        self.is_recording = False
-        self.recording_buffer = []
-        
-        Clock.schedule_once(self._build_ui)
-    
-    def _build_ui(self, dt):
-        # Dark background
-        root = FloatLayout()
-        
-        # Main content
-        content = BoxLayout(orientation='vertical', padding=dp(8), spacing=dp(8))
-        
-        # Header
-        header = BoxLayout(size_hint_y=None, height=dp(50))
-        
-        title = MDLabel(
-            text="[b]NOVA VOICE[/b]",
-            font_name="RobotoMono",
-            font_size=sp(18),
-            markup=True,
-            theme_text_color="Custom",
-            text_color=(0.4, 0.8, 1, 1),
-            size_hint_x=0.5,
-        )
-        header.add_widget(title)
-        
-        self.status_label = MDLabel(
-            text="● OFFLINE",
-            font_name="RobotoMono",
-            font_size=sp(14),
-            halign="right",
-            theme_text_color="Custom",
-            text_color=(1, 0.3, 0.3, 1),
-            size_hint_x=0.5,
-        )
-        header.add_widget(self.status_label)
-        content.add_widget(header)
-        
-        # Status bar
-        status_bar = MDCard(
-            elevation=0,
-            md_bg_color=(0.05, 0.1, 0.15, 0.9),
-            radius=[dp(8)],
-            size_hint_y=None,
-            height=dp(40),
-        )
-        self.status_text = MDLabel(
-            text="Ready to connect",
-            font_name="RobotoMono",
-            font_size=sp(12),
-            theme_text_color="Custom",
-            text_color=(0.3, 0.8, 0.5, 1),
-        )
-        status_bar.add_widget(self.status_text)
-        content.add_widget(status_bar)
-        
-        # Chat area
-        chat_card = MDCard(
-            elevation=0,
-            md_bg_color=(0.03, 0.06, 0.1, 0.95),
-            radius=[dp(8)],
-        )
-        chat_layout = BoxLayout(orientation='vertical', padding=dp(8))
-        
-        self.chat_scroll = ScrollView()
-        self.chat_list = MDList()
-        self.chat_scroll.add_widget(self.chat_list)
-        chat_layout.add_widget(self.chat_scroll)
-        
-        # Transcript
-        self.transcript_label = MDLabel(
-            text="",
-            font_name="RobotoMono",
-            font_size=sp(14),
-            halign="center",
-            theme_text_color="Custom",
-            text_color=(0.4, 0.6, 0.8, 1),
-            size_hint_y=None,
-            height=dp(40),
-        )
-        chat_layout.add_widget(self.transcript_label)
-        
-        # Input
-        input_layout = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(8))
-        
-        self.message_input = MDTextField(
-            hint_text="Type a message...",
-            font_name="RobotoMono",
-            size_hint_x=0.7,
-            mode="fill",
-            fill_color=(0.1, 0.15, 0.2, 1),
-        )
-        input_layout.add_widget(self.message_input)
-        
-        send_btn = MDRaisedButton(
-            text="SEND",
-            font_name="RobotoMono",
-            font_size=sp(12),
-            md_bg_color=(0.1, 0.4, 0.3, 1),
-            theme_text_color="Custom",
-            text_color=(0.2, 1, 0.6, 1),
-            size_hint_x=0.3,
-            elevation=0,
-        )
-        send_btn.bind(on_release=self._send_message)
-        input_layout.add_widget(send_btn)
-        
-        chat_layout.add_widget(input_layout)
-        chat_card.add_widget(chat_layout)
-        content.add_widget(chat_card)
-        
-        # Buttons
-        controls = BoxLayout(size_hint_y=None, height=dp(50), spacing=dp(8))
-        
-        self.connect_btn = MDRaisedButton(
-            text="CONNECT",
-            font_name="RobotoMono",
-            md_bg_color=(0.1, 0.3, 0.4, 1),
-            theme_text_color="Custom",
-            text_color=(0.4, 0.8, 1, 1),
-            elevation=0,
-        )
-        self.connect_btn.bind(on_release=self._on_connect)
-        controls.add_widget(self.connect_btn)
-        
-        self.voice_btn = MDRaisedButton(
-            text="🎤 VOICE",
-            font_name="RobotoMono",
-            md_bg_color=(0.15, 0.15, 0.2, 1),
-            theme_text_color="Custom",
-            text_color=(0.6, 0.6, 0.7, 1),
-            elevation=0,
-            disabled=True,
-        )
-        self.voice_btn.bind(on_release=self._toggle_voice)
-        controls.add_widget(self.voice_btn)
-        
-        content.add_widget(controls)
-        
-        # Settings
-        settings_btn = MDRaisedButton(
-            text="SETTINGS",
-            font_name="RobotoMono",
-            md_bg_color=(0.1, 0.1, 0.15, 1),
-            theme_text_color="Custom",
-            text_color=(0.5, 0.5, 0.6, 1),
-            elevation=0,
-            size_hint_y=None,
-            height=dp(40),
-        )
-        settings_btn.bind(on_release=self._show_settings)
-        content.add_widget(settings_btn)
-        
-        root.add_widget(content)
-        self.add_widget(root)
-    
-    def _initialize(self, dt):
-        self.tts = TTSEngine(self.config.get("voice"))
-        
-        # Initialize speech recognition
-        model_path = Path(__file__).parent / "assets" / "vosk-model-small-en-us-0.15"
-        if not model_path.exists():
-            model_path = Path(__file__).parent / "vosk-model-small-en-us-0.15"
-        
-        self.speech_rec = SpeechRecognition(model_path)
-        if self.speech_rec.initialize():
-            self._add_message("Voice ready. Say 'Hey Nova' to start.", "system")
-        else:
-            self._add_message("Voice unavailable - model not found.", "system")
-        
-        # Initialize audio
-        if ANDROID_AVAILABLE:
-            self.audio_capture = AudioCapture()
-        
-        # Start event loop
-        self._start_event_loop()
-        
-        # Auto-connect
-        if self.config.is_configured():
-            Clock.schedule_once(lambda dt: self._on_connect(None), 1.0)
-    
-    def _start_event_loop(self):
-        def run_loop():
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
-            self.loop.run_forever()
-        
-        self.event_loop_thread = threading.Thread(target=run_loop, daemon=True)
-        self.event_loop_thread.start()
-    
-    def _add_message(self, text: str, sender: str):
-        msg = ChatMessage(text, sender)
-        self.messages.append(msg)
-        
-        item = OneLineListItem(
-            text=f"[{msg.timestamp.strftime('%H:%M')}] {text[:80]}",
-            font_name="RobotoMono",
-            font_size=sp(11),
-        )
-        self.chat_list.add_widget(item)
-        self.chat_scroll.scroll_y = 0
-    
-    def _on_connect(self, instance):
-        if self.gateway and self.gateway.connected:
-            asyncio.run_coroutine_threadsafe(self.gateway.close(), self.loop)
-            self.connection_status = "offline"
-            self.connect_btn.text = "CONNECT"
-            self.voice_btn.disabled = True
-            self._update_status("Disconnected")
-        else:
-            self._update_status("Connecting...")
-            self.connection_status = "connecting"
-            
-            self.gateway = GatewayClient(
-                self.config.get("gateway_host"),
-                self.config.get("gateway_port"),
-                self.config.get("gateway_token"),
-                self.config.device_key
-            )
-            self.gateway.message_callback = self._on_message
-            
-            async def do_connect():
-                success, message = await self.gateway.connect()
-                Clock.schedule_once(lambda dt: self._on_connected(success, message))
-            
-            asyncio.run_coroutine_threadsafe(do_connect(), self.loop)
-    
-    def _on_connected(self, success: bool, message: str):
-        if success:
-            self.connection_status = "online"
-            self.connect_btn.text = "DISCONNECT"
-            self.voice_btn.disabled = False
-            self._update_status(f"Connected to {self.config.get('gateway_host')}")
-            self._add_message("Connected to Nova.", "system")
-            
-            if self.loop and self.tts:
-                asyncio.run_coroutine_threadsafe(self.tts.speak("Nova online."), self.loop)
-        else:
-            self.connection_status = "offline"
-            self._update_status(f"Failed: {message}")
-            self._add_message(f"Connection failed: {message}", "system")
-    
-    def _on_message(self, text: str, sender: str):
-        if sender == "assistant":
-            self._add_message(text, "assistant")
-            if self.loop and self.tts:
-                asyncio.run_coroutine_threadsafe(self.tts.speak(text), self.loop)
-    
-    def _send_message(self, instance):
-        text = self.message_input.text.strip()
-        if not text:
-            return
-        
-        self.message_input.text = ""
-        self._add_message(text, "user")
-        
-        if self.gateway and self.gateway.connected:
-            async def send():
-                await self.gateway.send_message(text)
-            asyncio.run_coroutine_threadsafe(send(), self.loop)
-        else:
-            self._add_message("Not connected.", "system")
-    
-    def _toggle_voice(self, instance):
-        if self.is_listening:
-            self.is_listening = False
-            self.is_recording = False
-            self.voice_btn.text = "🎤 VOICE"
-            self.voice_btn.md_bg_color = (0.15, 0.15, 0.2, 1)
-            self.transcript_label.text = ""
-            if self.audio_capture:
-                self.audio_capture.stop()
-        else:
-            self.is_listening = True
-            self.voice_btn.text = "⏹ STOP"
-            self.voice_btn.md_bg_color = (0.6, 0.2, 0.2, 1)
-            self.transcript_label.text = "🎤 Listening..."
-            
-            if not self.audio_capture and ANDROID_AVAILABLE:
-                self.audio_capture = AudioCapture()
-            
-            if self.audio_capture and self.audio_capture.initialize():
-                self.audio_capture.audio_callback = self._on_audio
-                self.audio_capture.start()
-            else:
-                self._add_message("Audio unavailable.", "system")
-                self.is_listening = False
-                self.voice_btn.text = "🎤 VOICE"
-    
-    def _on_audio(self, audio_data: bytes):
-        if not self.is_listening:
-            return
-        
-        if self.speech_rec:
-            is_final, text = self.speech_rec.process_audio(audio_data)
-            
-            if is_final and text:
-                wake_word = self.config.get("wake_word", "nova").lower()
-                
-                if not self.is_recording and wake_word in text.lower():
-                    self.is_recording = True
-                    self.recording_buffer = []
-                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Wake word! Listening..."))
-                    self.speech_rec.reset()
-                    
-                    if self.loop and self.tts:
-                        asyncio.run_coroutine_threadsafe(self.tts.speak("Yes?"), self.loop)
-                
-                elif self.is_recording:
-                    self.recording_buffer.append(text)
-                    full_text = " ".join(self.recording_buffer)
-                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', f"🎤 {full_text}"))
-                    
-                    if len(full_text) > 5:
-                        Clock.schedule_once(lambda dt: self._send_voice(full_text), 1.0)
-                        self.is_recording = False
-                        self.speech_rec.reset()
-    
-    def _send_voice(self, text: str):
-        if not text.strip():
-            return
-        
-        self._add_message(text, "user")
-        
-        if self.gateway and self.gateway.connected:
-            async def send():
-                await self.gateway.send_message(text)
-            asyncio.run_coroutine_threadsafe(send(), self.loop)
-        
-        self.recording_buffer = []
-        Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Listening..."))
-    
-    def _update_status(self, message: str):
-        self.status_text.text = message
-        
-        colors = {"offline": (1, 0.3, 0.3, 1), "connecting": (1, 0.8, 0.2, 1), "online": (0.2, 1, 0.6, 1)}
-        color = colors.get(self.connection_status, (0.5, 0.5, 0.5, 1))
-        self.status_label.text = f"● {self.connection_status.upper()}"
-        self.status_label.text_color = color
-    
-    def _show_settings(self, instance):
-        MDApp.get_running_app().root.current = "setup"
-    
-    def on_enter(self):
-        if not hasattr(self, 'loop'):
-            Clock.schedule_once(self._initialize, 0.5)
-
-
-class ChatMessage:
-    def __init__(self, text: str, sender: str):
-        self.text = text
-        self.sender = sender
-        self.timestamp = datetime.now()
-
-
 class SetupScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -923,6 +996,7 @@ class SetupScreen(MDScreen):
 
 class NovaVoiceApp(MDApp):
     def build(self):
+        debug_log("NovaVoiceApp.build() called")
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Cyan"
         
@@ -931,12 +1005,15 @@ class NovaVoiceApp(MDApp):
         sm.add_widget(MainScreen(name="main"))
         
         sm.current = "main" if config.is_configured() else "setup"
+        debug_log(f"Screen set to: {sm.current}")
         return sm
 
 
 def main():
+    debug_log("main() called")
     NovaVoiceApp().run()
 
 
 if __name__ == "__main__":
+    debug_log("__main__ starting")
     main()
