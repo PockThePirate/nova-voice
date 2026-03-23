@@ -1,0 +1,7 @@
+kivy[base]
+kivymd
+vosk
+pyaudio
+websockets
+asyncio
+edge-tts
