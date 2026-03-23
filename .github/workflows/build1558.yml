@@ -38,7 +38,8 @@ jobs:
           yes | sdkmanager --licenses || true
           
           # Install required packages (API 33 is stable and widely supported)
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools" "ndk;25.1.8937393"
+          # Note: buildozer will download NDK itself with correct version format
+          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
           
           # Create symlink for buildozer (it expects tools/bin/sdkmanager)
           mkdir -p $ANDROID_HOME/tools/bin

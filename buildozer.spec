@@ -62,8 +62,8 @@ android.minapi = 24
 # (str) Android API version (API 33 is stable and widely supported)
 android.api = 33
 
-# (str) Android NDK version
-android.ndk = 25.1.8937393
+# (str) Android NDK version (buildozer format: 25b, not 25.1.x)
+android.ndk = 25b
 
 # (str) Android SDK path (GitHub Actions)
 android.sdk_path = /usr/local/lib/android/sdk

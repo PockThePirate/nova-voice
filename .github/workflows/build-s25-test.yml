@@ -47,11 +47,11 @@ jobs:
           unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools || true
           mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest || true
           echo "y" | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses || true
+          # Let buildozer download NDK itself (uses different version format)
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
             "platforms;android-33" \
             "build-tools;33.0.2" \
-            "platform-tools" \
-            "ndk;25.1.8937393"
+            "platform-tools"
 
       - name: Build minimal test APK
         run: |

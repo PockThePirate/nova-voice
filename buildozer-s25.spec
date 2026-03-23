@@ -16,7 +16,7 @@ requirements = python3,kivy,pyjnius
 # Android 14+ compatibility
 android.api = 33
 android.minapi = 24
-android.ndk = 25.1.8937393
+android.ndk = 25b
 android.sdk_path = /usr/local/lib/android/sdk
 
 # Minimal permissions
