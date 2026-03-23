@@ -26,7 +26,7 @@ wheels/
 
 # PyInstaller
 *.manifest
-*.spec
+# Note: buildozer.spec is NOT ignored - we need it for builds
 
 # Installer logs
 pip-log.txt
