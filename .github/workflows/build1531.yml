@@ -1,4 +1,4 @@
-name: build1453
+name: build1531
 
 on:
   workflow_dispatch:
@@ -15,6 +15,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -36,31 +39,27 @@ jobs:
             zip unzip zlib1g-dev openjdk-17-jdk libncurses-dev \
             libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Accept Android licenses
         run: |
-          yes | sdkmanager --licenses
-          sdkmanager "platforms;android-33" "build-tools;33.0.0" "platform-tools"
+          yes | sdkmanager --licenses || true
 
-      - name: Link Android SDK for buildozer
+      - name: Install Android SDK components
         run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk
-          # Link the SDK installed by setup-android to where buildozer expects it
-          cp -r $ANDROID_HOME/* ~/.buildozer/android/platform/android-sdk/ || true
-          # Create cmdline-tools directory structure that buildozer expects
-          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
-          cp -r $ANDROID_HOME/cmdline-tools/latest/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
+          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
         run: |
+          # Tell buildozer to use the pre-installed SDK
+          mkdir -p ~/.buildozer/android/platform
+          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
           buildozer android debug
 
       - name: Build APK (release)
         if: github.event.inputs.build_type == 'release'
         run: |
+          mkdir -p ~/.buildozer/android/platform
+          ln -sf $ANDROID_HOME ~/.buildozer/android/platform/android-sdk
           buildozer android release
 
       - name: List output
