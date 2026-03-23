@@ -33,7 +33,7 @@ version = 1.0.0
 # Note: vosk requires bundled model in assets/
 # IMPORTANT: Pin kivymd to 1.1.1 to avoid Cairo dependency (breaks Android)
 # See: https://github.com/kivymd/KivyMD/issues/1842
-requirements = python3,kivy==2.3.0,kivymd==1.1.1,websockets==12.0,pyjnius,vosk,pynacl
+requirements = python3,kivy==2.3.0,kivymd==1.1.1,websockets==12.0,pyjnius,vosk,pynacl,libsodium
 
 # (str) Icon of the application
 android.icon = icon.png
@@ -46,6 +46,9 @@ fullscreen = 0
 
 # (list) Permissions
 android.permissions = RECORD_AUDIO,FOREGROUND_SERVICE,WAKE_LOCK,INTERNET
+
+# (str) Android foreground service type (required for Android 14+)
+android.foreground_service_type = mediaPlayback
 
 # (bool) Enable Android auto backup
 android.allow_backup = True
