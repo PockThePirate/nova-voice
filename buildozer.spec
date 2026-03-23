@@ -22,10 +22,11 @@ source.exclude_exts = spec,pyc,md
 version = 1.0.0
 
 # (list) Application requirements
-# pynacl for Ed25519 signing (device authentication)
-# edge-tts for TTS
-# vosk for wake word
-requirements = python3,kivy,kivymd,vosk,websockets,pyjnius,edge-tts,pynacl
+# Core: python3, kivy, kivymd
+# Networking: websockets (for gateway connection)
+# Audio: vosk (wake word), pyjnius (Android APIs)
+# Crypto: libsodium, pynacl (for Ed25519 device auth)
+requirements = python3,kivy,kivymd,websockets,pyjnius,vosk,libsodium,pynacl
 
 # (str) Icon of the application
 android.icon = icon.png
@@ -54,7 +55,7 @@ android.api = 33
 # (str) Android NDK version
 android.ndk = 25b
 
-# (str) Android SDK path
+# (str) Android SDK path (GitHub Actions)
 android.sdk_path = /usr/local/lib/android/sdk
 
 # (str) Android entry point
