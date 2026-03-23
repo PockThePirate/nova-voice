@@ -1,4 +1,4 @@
-name: build1545
+name: build1548
 
 on:
   workflow_dispatch:
@@ -23,11 +23,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java
+      - name: Set up Java 11 (for old Android SDK tools compatibility)
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '11'
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
@@ -56,8 +56,7 @@ jobs:
       - name: Verify SDK setup
         run: |
           echo "ANDROID_HOME=$ANDROID_HOME"
-          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-          echo "ANDROIDSDK=$ANDROIDSDK"
+          java -version
           ls -la $ANDROID_HOME/build-tools/ || echo "No build-tools"
           ls -la $ANDROID_HOME/platforms/ || echo "No platforms"
 
