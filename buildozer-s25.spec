@@ -13,10 +13,10 @@ version = 2.0.0
 # This is a baseline test to prove the app can open at all
 requirements = python3,kivy,pyjnius
 
-# Android 16 (API 36) compatibility
-android.api = 36
+# Android 14+ compatibility
+android.api = 34
 android.minapi = 24
-android.ndk = 27b
+android.ndk = 25b
 android.sdk_path = /usr/local/lib/android/sdk
 
 # Minimal permissions
