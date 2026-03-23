@@ -1,4 +1,4 @@
-name: build1537
+name: build1539
 
 on:
   workflow_dispatch:
@@ -41,17 +41,23 @@ jobs:
             zip unzip zlib1g-dev libncurses-dev \
             libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
 
-      - name: Setup Android SDK with modern cmdline-tools
+      - name: Setup Android SDK for buildozer
         run: |
           export ANDROID_SDK_ROOT=$HOME/.buildozer/android/platform/android-sdk
-          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
-          cd $ANDROID_SDK_ROOT/cmdline-tools
+          mkdir -p $ANDROID_SDK_ROOT
           
           # Download modern command line tools
+          mkdir -p $ANDROID_SDK_ROOT/cmdline-tools
+          cd $ANDROID_SDK_ROOT/cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O tools.zip
           unzip -q tools.zip
           rm tools.zip
           mv cmdline-tools latest
+          
+          # Create old-style tools directory symlink (buildozer expects this)
+          mkdir -p $ANDROID_SDK_ROOT/tools
+          ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager 2>/dev/null || mkdir -p $ANDROID_SDK_ROOT/tools/bin
+          ln -sf $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager $ANDROID_SDK_ROOT/tools/bin/sdkmanager
           
           # Add to PATH
           echo "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin" >> $GITHUB_PATH
@@ -59,12 +65,10 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
 
       - name: Accept Android licenses
-        run: |
-          yes | sdkmanager --licenses || true
+        run: yes | sdkmanager --licenses || true
 
       - name: Install SDK packages
-        run: |
-          sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
+        run: sdkmanager "platforms;android-33" "build-tools;33.0.2" "platform-tools"
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
