@@ -25,12 +25,18 @@ jobs:
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
         run: |
+          export BUILDOZER_ALLOW_ROOT=1
           buildozer android debug
+        env:
+          BUILDOZER_ALLOW_ROOT: "1"
 
       - name: Build APK (release)
         if: github.event.inputs.build_type == 'release'
         run: |
+          export BUILDOZER_ALLOW_ROOT=1
           buildozer android release
+        env:
+          BUILDOZER_ALLOW_ROOT: "1"
 
       - name: List output
         if: always()
