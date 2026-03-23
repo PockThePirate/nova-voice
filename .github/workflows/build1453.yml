@@ -1,4 +1,4 @@
-name: build1448
+name: build1453
 
 on:
   workflow_dispatch:
@@ -36,13 +36,22 @@ jobs:
             zip unzip zlib1g-dev openjdk-17-jdk libncurses-dev \
             libffi-dev libssl-dev libbz2-dev libreadline-dev libsqlite3-dev liblzma-dev
 
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Accept Android licenses
         run: |
-          mkdir -p ~/.buildozer/android/platform/android-sdk/licenses
-          echo -e "\n24333f8a63b082caecc7685a5e0a8c30" > ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo -e "\n84831b9409646a918e30573bab4c00c9" >> ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-          echo -e "\nd975f751a89e47c832e7ef8c2e5e9b91" >> ~/.buildozer/android/platform/android-sdk/licenses/android-sdk-license
-        shell: bash
+          yes | sdkmanager --licenses
+          sdkmanager "platforms;android-33" "build-tools;33.0.0" "platform-tools"
+
+      - name: Link Android SDK for buildozer
+        run: |
+          mkdir -p ~/.buildozer/android/platform/android-sdk
+          # Link the SDK installed by setup-android to where buildozer expects it
+          cp -r $ANDROID_HOME/* ~/.buildozer/android/platform/android-sdk/ || true
+          # Create cmdline-tools directory structure that buildozer expects
+          mkdir -p ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest
+          cp -r $ANDROID_HOME/cmdline-tools/latest/* ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/ 2>/dev/null || true
 
       - name: Build APK (debug)
         if: github.event.inputs.build_type != 'release'
