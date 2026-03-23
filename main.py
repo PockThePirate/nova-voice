@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
-Nova Voice - OpenClaw Node Client (Debug Build)
-Mission control interface with voice and chat.
+Nova Voice - OpenClaw Node Client (Fixed)
 """
 
 import asyncio
@@ -16,7 +15,7 @@ import traceback
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any, List
+from typing import Optional, Dict, Any
 
 # Debug logging - write to file immediately
 DEBUG_FILE = None
@@ -95,6 +94,7 @@ except ImportError as e:
 # NaCl for auth
 try:
     from nacl.signing import SigningKey
+    from nacl.encoding import Base64Encoder
     NACL_AVAILABLE = True
     debug_log("NaCl imported successfully")
 except ImportError as e:
@@ -102,7 +102,7 @@ except ImportError as e:
     debug_log(f"NaCl not available: {e}")
 
 from kivy.app import App
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 from kivy.core.audio import SoundLoader
 from kivy.metrics import dp
 from kivy.properties import BooleanProperty, StringProperty
@@ -113,7 +113,6 @@ from kivy.uix.scrollview import ScrollView
 from kivymd.app import MDApp
 from kivymd.uix.button import MDRaisedButton
 from kivymd.uix.card import MDCard
-from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
 from kivymd.uix.screen import MDScreen
 from kivymd.uix.screenmanager import MDScreenManager
@@ -140,7 +139,7 @@ class Config:
         }
         self.data = self.load()
         self.device_key = self._load_device_key()
-        debug_log(f"Config loaded: host={self.data.get('gateway_host')}, port={self.data.get('gateway_port')}")
+        debug_log(f"Config loaded: host={self.data.get('gateway_host')}, device_key={self.device_key is not None}")
     
     def _get_config_path(self) -> Path:
         try:
@@ -156,42 +155,61 @@ class Config:
         return Path(__file__).parent / "config.json"
     
     def _load_device_key(self) -> Optional[Dict]:
+        """Load or generate device keypair. Returns None on failure."""
         if not NACL_AVAILABLE:
             debug_log("NaCl not available, skipping device key")
             return None
         
+        # Try to load existing key
         try:
             if self.device_key_path.exists():
-                with open(self.device_key_path) as f:
+                with open(self.device_key_path, 'r') as f:
                     key_data = json.load(f)
-                    debug_log(f"Loaded existing device key: {key_data.get('device_id')}")
-                    return key_data
+                    # Validate required fields
+                    if all(k in key_data for k in ['device_id', 'private_key', 'public_key']):
+                        debug_log(f"Loaded existing device key: {key_data.get('device_id')}")
+                        return key_data
+                    else:
+                        debug_log("Existing key file missing fields, regenerating")
         except Exception as e:
             debug_log(f"Error loading device key: {e}")
         
         # Generate new keypair
         try:
+            debug_log("Generating new device keypair...")
             signing_key = SigningKey.generate()
             verify_key = signing_key.verify_key
+            
+            # Generate device ID from public key hash
             device_id = hashlib.sha256(bytes(verify_key)).hexdigest()[:16]
             
             key_data = {
                 "device_id": f"nova_voice_{device_id}",
-                "private_key": base64.b64encode(bytes(signing_key)).decode(),
-                "public_key": base64.b64encode(bytes(verify_key)).decode(),
+                "private_key": base64.b64encode(bytes(signing_key)).decode('utf-8'),
+                "public_key": base64.b64encode(bytes(verify_key)).decode('utf-8'),
             }
             
+            # Validate before saving
+            assert key_data['device_id']
+            assert key_data['private_key']
+            assert key_data['public_key']
+            
+            # Save to file
             try:
                 self.device_key_path.parent.mkdir(parents=True, exist_ok=True)
                 with open(self.device_key_path, 'w') as f:
-                    json.dump(key_data, f)
-                debug_log(f"Generated new device key: {key_data.get('device_id')}")
+                    json.dump(key_data, f, indent=2)
+                debug_log(f"Saved new device key: {key_data.get('device_id')}")
             except Exception as e:
-                debug_log(f"Error saving device key: {e}")
+                debug_log(f"Warning: could not save device key: {e}")
+                # Still return the key even if save fails
             
+            debug_log(f"Device key generated successfully")
             return key_data
+            
         except Exception as e:
-            debug_log(f"Error generating device key: {e}")
+            debug_log(f"ERROR generating device key: {e}")
+            debug_log(traceback.format_exc())
             return None
     
     def load(self) -> dict:
@@ -233,7 +251,7 @@ class GatewayClient:
     
     PROTOCOL_VERSION = 3
     
-    def __init__(self, host: str, port: int, token: str, device_key: Dict = None):
+    def __init__(self, host: str, port: int, token: str, device_key: Optional[Dict] = None):
         self.host = host
         self.port = port
         self.token = token
@@ -245,44 +263,58 @@ class GatewayClient:
         self.message_callback = None
         self._receive_task = None
         self._request_id = 0
-        debug_log(f"GatewayClient created: {host}:{port}")
+        debug_log(f"GatewayClient created: {host}:{port}, has_device_key={device_key is not None}")
     
     def _next_request_id(self) -> str:
         self._request_id += 1
         return f"req_{int(time.time() * 1000)}_{self._request_id}"
     
-    def _sign_challenge(self, nonce: str, ts: int) -> Dict[str, Any]:
+    def _sign_challenge(self, nonce: str, ts: int) -> Optional[Dict[str, Any]]:
+        """Sign challenge with device key. Returns None if no device key or signing fails."""
         if not self.device_key:
-            debug_log("No device key, skipping signing")
-            return {}
+            debug_log("No device key available for signing")
+            return None
+        
+        # Validate device key has required fields
+        required_fields = ['device_id', 'private_key', 'public_key']
+        if not all(k in self.device_key for k in required_fields):
+            debug_log(f"Device key missing fields: {[k for k in required_fields if k not in self.device_key]}")
+            return None
         
         try:
-            import nacl.signing
-            private_key_bytes = base64.b64decode(self.device_key["private_key"])
-            signing_key = nacl.signing.SigningKey(private_key_bytes)
+            from nacl.signing import SigningKey
             
+            # Decode private key
+            private_key_b64 = self.device_key['private_key']
+            private_key_bytes = base64.b64decode(private_key_b64)
+            signing_key = SigningKey(private_key_bytes)
+            
+            # Build payload to sign
             payload = json.dumps({
-                "device_id": self.device_key["device_id"],
+                "device_id": self.device_key['device_id'],
                 "platform": "android",
                 "nonce": nonce,
                 "ts": ts
             }, sort_keys=True, separators=(',', ':'))
             
-            signed = signing_key.sign(payload.encode())
-            signature = base64.b64encode(signed.signature).decode()
+            # Sign
+            signed = signing_key.sign(payload.encode('utf-8'))
+            signature = base64.b64encode(signed.signature).decode('utf-8')
             
-            debug_log(f"Signed challenge for device: {self.device_key['device_id']}")
+            debug_log(f"Challenge signed for device: {self.device_key['device_id']}")
+            
             return {
-                "id": self.device_key["device_id"],
-                "publicKey": self.device_key["public_key"],
+                "id": self.device_key['device_id'],
+                "publicKey": self.device_key['public_key'],
                 "signature": signature,
                 "signedAt": int(time.time() * 1000),
                 "nonce": nonce
             }
+            
         except Exception as e:
-            debug_log(f"Error signing challenge: {e}")
+            debug_log(f"ERROR signing challenge: {e}")
             debug_log(traceback.format_exc())
-            return {}
+            return None
     
     async def connect(self) -> tuple:
         debug_log(f"GatewayClient.connect() called")
@@ -295,61 +327,68 @@ class GatewayClient:
         
         try:
             uri = f"ws://{self.host}:{self.port}/ws"
-            debug_log(f"Creating WebSocket connection to: {uri}")
+            debug_log(f"Creating WebSocket connection...")
             
             self.ws = await websockets.connect(uri, ping_interval=30, ping_timeout=10)
             debug_log("WebSocket connected! Waiting for challenge...")
             
             # Wait for challenge
+            nonce = None
+            ts = None
+            
             try:
                 challenge = await asyncio.wait_for(self.ws.recv(), timeout=10)
-                debug_log(f"Received challenge: {challenge[:200]}")
+                debug_log(f"Received: {challenge[:200] if len(challenge) > 200 else challenge}")
                 challenge_data = json.loads(challenge)
                 
                 if challenge_data.get("event") == "connect.challenge":
                     payload = challenge_data.get("payload", {})
-                    nonce = payload.get("nonce", secrets.token_hex(16))
-                    ts = payload.get("ts", int(time.time() * 1000))
-                    debug_log(f"Got challenge nonce: {nonce[:20]}...")
+                    nonce = payload.get("nonce")
+                    ts = payload.get("ts")
+                    debug_log(f"Got challenge: nonce={nonce[:20] if nonce else None}...")
                 else:
-                    nonce = secrets.token_hex(16)
-                    ts = int(time.time() * 1000)
-                    debug_log("No challenge event, using random nonce")
+                    debug_log(f"Unexpected message: {challenge_data.get('type', 'unknown')}")
             except asyncio.TimeoutError:
+                debug_log("Challenge timeout, using generated nonce")
+            
+            if not nonce:
                 nonce = secrets.token_hex(16)
                 ts = int(time.time() * 1000)
-                debug_log("Challenge timeout, using random nonce")
             
             # Build connect frame
+            connect_params = {
+                "minProtocol": self.PROTOCOL_VERSION,
+                "maxProtocol": self.PROTOCOL_VERSION,
+                "client": {
+                    "id": "nova-voice",
+                    "version": "1.0.0",
+                    "platform": "android",
+                    "mode": "node"
+                },
+                "role": "node",
+                "scopes": ["operator.read", "operator.write"],
+                "caps": ["voice", "audio"],
+                "commands": ["voice.listen", "audio.capture"],
+                "permissions": {"audio.capture": True, "voice.listen": True},
+                "auth": {"token": self.token},
+                "locale": "en-US",
+                "userAgent": "NovaVoice/1.0.0",
+            }
+            
+            # Add device auth if available
             device_auth = self._sign_challenge(nonce, ts)
+            if device_auth:
+                connect_params["device"] = device_auth
+                debug_log("Added device auth to connect frame")
+            else:
+                debug_log("No device auth, using token-only auth")
             
             connect_frame = {
                 "type": "req",
                 "id": self._next_request_id(),
                 "method": "connect",
-                "params": {
-                    "minProtocol": self.PROTOCOL_VERSION,
-                    "maxProtocol": self.PROTOCOL_VERSION,
-                    "client": {
-                        "id": "nova-voice",
-                        "version": "1.0.0",
-                        "platform": "android",
-                        "mode": "node"
-                    },
-                    "role": "node",
-                    "scopes": ["operator.read", "operator.write"],
-                    "caps": ["voice", "audio"],
-                    "commands": ["voice.listen", "audio.capture"],
-                    "permissions": {"audio.capture": True, "voice.listen": True},
-                    "auth": {"token": self.token},
-                    "locale": "en-US",
-                    "userAgent": "NovaVoice/1.0.0",
-                }
+                "params": connect_params
             }
-            
-            if device_auth:
-                connect_frame["params"]["device"] = device_auth
-                debug_log("Added device auth to connect frame")
             
             debug_log("Sending connect frame...")
             await self.ws.send(json.dumps(connect_frame))
@@ -357,27 +396,35 @@ class GatewayClient:
             # Wait for response
             try:
                 response = await asyncio.wait_for(self.ws.recv(), timeout=10)
-                debug_log(f"Received response: {response[:500]}")
+                debug_log(f"Received response: {response[:500] if len(response) > 500 else response}")
                 response_data = json.loads(response)
                 
-                if response_data.get("type") == "res" and response_data.get("ok"):
-                    payload = response_data.get("payload", {})
-                    if payload.get("type") == "hello-ok":
-                        self.authenticated = True
-                        self.connected = True
-                        self._receive_task = asyncio.create_task(self._receive_loop())
-                        debug_log("CONNECTION SUCCESSFUL!")
-                        return True, "Connected"
+                if response_data.get("type") == "res":
+                    if response_data.get("ok"):
+                        payload = response_data.get("payload", {})
+                        if payload.get("type") == "hello-ok":
+                            self.authenticated = True
+                            self.connected = True
+                            self._receive_task = asyncio.create_task(self._receive_loop())
+                            debug_log("CONNECTION SUCCESSFUL!")
+                            return True, "Connected"
+                    
+                    # Error response
+                    error = response_data.get("error", {})
+                    code = error.get("details", {}).get("code", error.get("message", "Unknown error"))
+                    debug_log(f"Connection rejected: {code}")
+                    return False, f"Auth failed: {code}"
                 
-                error = response_data.get("error", {})
-                code = error.get("details", {}).get("code", error.get("message", "Auth failed"))
-                debug_log(f"Connection failed: {code}")
-                return False, f"Auth failed: {code}"
+                debug_log(f"Unexpected response type: {response_data.get('type')}")
+                return False, "Unexpected response"
                 
             except asyncio.TimeoutError:
                 debug_log("Response timeout")
                 return False, "Response timeout"
             
+        except websockets.exceptions.ConnectionClosed as e:
+            debug_log(f"Connection closed: {e}")
+            return False, f"Connection closed: {e}"
         except Exception as e:
             debug_log(f"Connection ERROR: {type(e).__name__}: {e}")
             debug_log(traceback.format_exc())
@@ -451,7 +498,6 @@ class MainScreen(MDScreen):
         self.messages = []
         self.is_recording = False
         self.recording_buffer = []
-        self._connect_result = None
         
         Clock.schedule_once(self._build_ui)
     
@@ -618,12 +664,11 @@ class MainScreen(MDScreen):
         if self.speech_rec.initialize():
             self._add_message("Voice ready. Say 'Hey Nova' to start.", "system")
         else:
-            self._add_message("Voice unavailable - model not found.", "system")
+            self._add_message("Voice unavailable.", "system")
         
         # Initialize audio
         if ANDROID_AVAILABLE and AudioRecord:
             self.audio_capture = AudioCapture()
-            debug_log("Audio capture initialized")
         
         # Start event loop
         self._start_event_loop()
@@ -664,11 +709,10 @@ class MainScreen(MDScreen):
         )
         self.chat_list.add_widget(item)
         self.chat_scroll.scroll_y = 0
-        debug_log(f"Message added: [{sender}] {text[:50]}")
+        debug_log(f"Message: [{sender}] {text[:50]}")
     
     def _on_connect(self, instance):
-        debug_log(f"_on_connect called. instance={instance}")
-        debug_log(f"Current state: gateway={self.gateway}, connected={self.gateway and self.gateway.connected}")
+        debug_log(f"_on_connect called")
         
         if self.gateway and self.gateway.connected:
             # Disconnect
@@ -698,17 +742,17 @@ class MainScreen(MDScreen):
             self.gateway.message_callback = self._on_message
             
             def do_connect():
-                debug_log("do_connect thread starting")
+                debug_log("Connection thread starting")
                 try:
                     future = asyncio.run_coroutine_threadsafe(
                         self.gateway.connect(),
                         self.loop
                     )
-                    result = future.result(timeout=30)
-                    debug_log(f"Connection result: {result}")
-                    Clock.schedule_once(lambda dt: self._on_connected(result[0], result[1]))
+                    success, message = future.result(timeout=30)
+                    debug_log(f"Connection result: success={success}, message={message}")
+                    Clock.schedule_once(lambda dt: self._on_connected(success, message))
                 except Exception as e:
-                    debug_log(f"do_connect error: {e}")
+                    debug_log(f"Connection thread error: {e}")
                     debug_log(traceback.format_exc())
                     Clock.schedule_once(lambda dt: self._on_connected(False, str(e)))
             
@@ -722,8 +766,8 @@ class MainScreen(MDScreen):
             self.connection_status = "online"
             self.connect_btn.text = "DISCONNECT"
             self.voice_btn.disabled = False
-            self._update_status(f"Connected to {self.config.get('gateway_host')}")
-            self._add_message("Connected to Nova.", "system")
+            self._update_status(f"Connected!")
+            self._add_message("Connected to Nova!", "system")
         else:
             self.connection_status = "offline"
             self._update_status(f"Failed: {message}")
@@ -775,30 +819,29 @@ class MainScreen(MDScreen):
                 self.voice_btn.text = "🎤 VOICE"
     
     def _on_audio(self, audio_data: bytes):
-        if not self.is_listening:
+        if not self.is_listening or not self.speech_rec:
             return
         
-        if self.speech_rec:
-            is_final, text = self.speech_rec.process_audio(audio_data)
+        is_final, text = self.speech_rec.process_audio(audio_data)
+        
+        if is_final and text:
+            wake_word = self.config.get("wake_word", "nova").lower()
             
-            if is_final and text:
-                wake_word = self.config.get("wake_word", "nova").lower()
+            if not self.is_recording and wake_word in text.lower():
+                self.is_recording = True
+                self.recording_buffer = []
+                Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Wake word! Listening..."))
+                self.speech_rec.reset()
+            
+            elif self.is_recording:
+                self.recording_buffer.append(text)
+                full_text = " ".join(self.recording_buffer)
+                Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', f"🎤 {full_text}"))
                 
-                if not self.is_recording and wake_word in text.lower():
-                    self.is_recording = True
-                    self.recording_buffer = []
-                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', "🎤 Wake word! Listening..."))
+                if len(full_text) > 5:
+                    Clock.schedule_once(lambda dt: self._send_voice(full_text), 1.0)
+                    self.is_recording = False
                     self.speech_rec.reset()
-                
-                elif self.is_recording:
-                    self.recording_buffer.append(text)
-                    full_text = " ".join(self.recording_buffer)
-                    Clock.schedule_once(lambda dt: setattr(self.transcript_label, 'text', f"🎤 {full_text}"))
-                    
-                    if len(full_text) > 5:
-                        Clock.schedule_once(lambda dt: self._send_voice(full_text), 1.0)
-                        self.is_recording = False
-                        self.speech_rec.reset()
     
     def _send_voice(self, text: str):
         if not text.strip():
@@ -1015,7 +1058,7 @@ class SetupScreen(MDScreen):
 
 class NovaVoiceApp(MDApp):
     def build(self):
-        debug_log("NovaVoiceApp.build() called")
+        debug_log("NovaVoiceApp.build()")
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Cyan"
         
@@ -1024,14 +1067,8 @@ class NovaVoiceApp(MDApp):
         sm.add_widget(MainScreen(name="main"))
         
         sm.current = "main" if config.is_configured() else "setup"
-        debug_log(f"Screen set to: {sm.current}")
+        debug_log(f"Screen: {sm.current}")
         return sm
-    
-    def on_start(self):
-        debug_log("NovaVoiceApp.on_start() called")
-    
-    def on_stop(self):
-        debug_log("NovaVoiceApp.on_stop() called")
 
 
 def main():
