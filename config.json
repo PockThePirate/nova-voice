@@ -1,5 +1,5 @@
 {
-  "gateway_host": "127.0.0.1",
+  "gateway_host": "147.93.113.71",
   "gateway_port": 18789,
   "wake_word": "nova",
   "wake_word_timeout": 10,
