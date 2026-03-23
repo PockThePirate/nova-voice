@@ -214,8 +214,23 @@ class Config:
         return bool(self.data.get("gateway_host")) and bool(self.data.get("gateway_token"))
 
 
-config = Config()
-debug_log("Config loaded")
+# Defer config initialization until app starts
+# (module-level initialization crashes before Kivy can catch errors)
+config = None
+
+
+def init_config():
+    """Initialize config after Kivy starts. Call this from App.build()."""
+    global config
+    if config is None:
+        try:
+            config = Config()
+            debug_log("Config initialized")
+        except Exception as e:
+            debug_log(f"Config init failed: {e}")
+            debug_log(traceback.format_exc())
+            config = None
+    return config
 
 
 class GatewayClient:
@@ -449,13 +464,19 @@ class MainScreen(MDScreen):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.config = config
+        self._config = None  # Will be set in on_enter
         self.gateway = None
         self.messages = []
         self._loop = None
         self._thread = None
         Clock.schedule_once(self._build_ui)
         debug_log("MainScreen init complete")
+    
+    def on_enter(self):
+        """Called when screen becomes active."""
+        global config
+        self._config = config
+        debug_log(f"MainScreen.on_enter, config={self._config is not None}")
     
     def _build_ui(self, dt):
         """Build the UI."""
@@ -494,8 +515,9 @@ class MainScreen(MDScreen):
         content.add_widget(header)
         
         # Status bar
+        is_configured = config.is_configured() if config else False
         self.status_label = MDLabel(
-            text="Ready to connect" if config.is_configured() else "Please configure in Settings",
+            text="Ready to connect" if is_configured else "Please configure in Settings",
             font_name="RobotoMono",
             font_size=sp(12),
             theme_text_color="Custom",
@@ -633,7 +655,7 @@ class MainScreen(MDScreen):
             self._add_message("Disconnected", "system")
         else:
             # Connect
-            if not config.is_configured():
+            if not self._config or not self._config.is_configured():
                 self._add_message("Please configure in Settings", "system")
                 return
             self._update_status("Connecting...")
@@ -652,10 +674,10 @@ class MainScreen(MDScreen):
                 asyncio.set_event_loop(self._loop)
                 
                 self.gateway = GatewayClient(
-                    self.config.get("gateway_host"),
-                    self.config.get("gateway_port"),
-                    self.config.get("gateway_token"),
-                    self.config.device_key
+                    self._config.get("gateway_host"),
+                    self._config.get("gateway_port"),
+                    self._config.get("gateway_token"),
+                    self._config.device_key
                 )
                 self.gateway.message_callback = self._on_gateway_message
                 
@@ -729,7 +751,13 @@ class SetupScreen(MDScreen):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._config = None
         Clock.schedule_once(self._build_ui)
+    
+    def on_enter(self):
+        """Called when screen becomes active."""
+        global config
+        self._config = config
     
     def _build_ui(self, dt):
         root = FloatLayout()
@@ -750,7 +778,7 @@ class SetupScreen(MDScreen):
         # Host field with validation
         self.host_field = MDTextField(
             hint_text="Gateway Host (e.g., 192.168.1.100)",
-            text=config.get("gateway_host", ""),
+            text=self._config.get("gateway_host", "") if self._config else "",
             font_name="RobotoMono",
             size_hint_y=None,
             height=dp(60),
@@ -760,7 +788,7 @@ class SetupScreen(MDScreen):
         # Port field with validation
         self.port_field = MDTextField(
             hint_text="Port (default: 18789)",
-            text=str(config.get("gateway_port", 18789)),
+            text=str(self._config.get("gateway_port", 18789) if self._config else 18789),
             font_name="RobotoMono",
             input_filter="int",
             size_hint_y=None,
@@ -771,7 +799,7 @@ class SetupScreen(MDScreen):
         # Token field
         self.token_field = MDTextField(
             hint_text="Gateway Token",
-            text=config.get("gateway_token", ""),
+            text=self._config.get("gateway_token", "") if self._config else "",
             font_name="RobotoMono",
             password=True,
             size_hint_y=None,
@@ -841,11 +869,12 @@ class SetupScreen(MDScreen):
             return
         
         # Save
-        config.data["gateway_host"] = host
-        config.data["gateway_port"] = port
-        config.data["gateway_token"] = token
-        config.data["setup_complete"] = True
-        config.save()
+        if self._config:
+            self._config.data["gateway_host"] = host
+            self._config.data["gateway_port"] = port
+            self._config.data["gateway_token"] = token
+            self._config.data["setup_complete"] = True
+            self._config.save()
         
         self.error_label.text = ""
         MDApp.get_running_app().root.current = "main"
@@ -856,6 +885,10 @@ class NovaVoiceApp(MDApp):
     
     def build(self):
         debug_log("NovaVoiceApp.build()")
+        
+        # Initialize config AFTER Kivy starts (module-level init crashes silently)
+        init_config()
+        
         self.theme_cls.theme_style = "Dark"
         self.theme_cls.primary_palette = "Cyan"
         
@@ -863,8 +896,9 @@ class NovaVoiceApp(MDApp):
         sm.add_widget(SetupScreen(name="setup"))
         sm.add_widget(MainScreen(name="main"))
         
-        sm.current = "main" if config.is_configured() else "setup"
-        debug_log(f"Screen: {sm.current}")
+        is_configured = config.is_configured() if config else False
+        sm.current = "main" if is_configured else "setup"
+        debug_log(f"Screen: {sm.current}, configured: {is_configured}")
         return sm
     
     def on_start(self):
@@ -891,7 +925,7 @@ class NovaVoiceApp(MDApp):
         debug_log("App resumed")
         try:
             main_screen = self.root.get_screen("main")
-            if main_screen.connection_status == "online" and config.is_configured():
+            if main_screen.connection_status == "online" and config and config.is_configured():
                 debug_log("Auto-reconnecting on resume")
                 main_screen._start_connection()
         except Exception as e:
@@ -900,7 +934,8 @@ class NovaVoiceApp(MDApp):
     def on_stop(self):
         """Handle app termination."""
         debug_log("App stopping")
-        config.save()
+        if config:
+            config.save()
         try:
             main_screen = self.root.get_screen("main")
             if main_screen.gateway and main_screen._loop:
@@ -919,6 +954,23 @@ def main():
     except Exception as e:
         debug_log(f"App crashed: {e}")
         debug_log(traceback.format_exc())
+        # Try to show a simple error dialog if Kivy is available
+        try:
+            from kivy.app import App
+            from kivy.uix.popup import Popup
+            from kivy.uix.label import Label
+            
+            class ErrorApp(App):
+                def build(self):
+                    return Label(
+                        text=f"Error: {e}\n\nCheck debug.log for details",
+                        text_size=(400, None),
+                        halign='center',
+                        valign='middle'
+                    )
+            ErrorApp().run()
+        except:
+            pass
         raise
 
 

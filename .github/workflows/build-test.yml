@@ -1,0 +1,89 @@
+name: Minimal Test Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: true
+        default: 'debug'
+        type: choice
+        options:
+          - debug
+          - release
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROIDSDK: /usr/local/lib/android/sdk
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Accept licenses and install SDK packages
+        run: |
+          mkdir -p $ANDROID_HOME/cmdline-tools
+          curl -sS https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o cmdline-tools.zip
+          unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
+          mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest || true
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME --licenses << EOF
+          y
+          y
+          y
+          y
+          y
+          y
+          y
+          y
+          EOF
+          $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME \
+            "platforms;android-33" \
+            "build-tools;33.0.2" \
+            "platform-tools" \
+            "ndk;25b"
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install buildozer with Cython < 3
+        run: |
+          pip install buildozer cython==0.29.36
+          pip install "cython<3.0"
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            autoconf libtool pkg-config \
+            libncurses5-dev libncursesw5-dev \
+            libtinfo5 cmake \
+            libffi-dev libssl-dev \
+            automake zip
+
+      - name: Build APK (debug) - MINIMAL
+        run: |
+          # Copy minimal test file as main.py
+          cp main_test.py main.py
+          buildozer android ${{ inputs.build_type }} 2>&1 | tee build.log
+
+      - name: List output
+        run: ls -la bin/ 2>/dev/null || echo "No bin directory"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nova-voice-minimal-apk
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 7
