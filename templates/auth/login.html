@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Login · Nova Mission Control{% endblock %}
+{% block content %}
+<div class="auth-frame panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Login</div>
+      <div class="panel-sub">Authenticate to enter Mission Control</div>
+    </div>
+  </div>
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="list-meta" style="color: var(--danger); margin-bottom: 8px;">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+    <div style="margin-bottom: 10px;">
+      <div class="list-meta">Username</div>
+      {{ form.username }}
+    </div>
+    <div style="margin-bottom: 16px;">
+      <div class="list-meta">Password</div>
+      {{ form.password }}
+    </div>
+    <button type="submit" class="nav-link">Enter</button>
+  </form>
+</div>
+{% endblock %}

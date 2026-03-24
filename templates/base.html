@@ -1,0 +1,29 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>{% block title %}Nova Mission Control{% endblock %}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="{% static 'css/cyber.css' %}">
+  </head>
+  <body class="bg-grid">
+    <div class="frame">
+      <header class="top-bar">
+        <div class="brand">
+          <span class="brand-mark">NOVA</span>
+          <span class="brand-sub">Mission Control</span>
+        </div>
+        <nav class="nav">
+          {% if user.is_authenticated %}
+            <span class="nav-user">🧑‍🚀 {{ user.username }}</span>
+            <a href="{% url 'logout' %}" class="nav-link">Log out</a>
+          {% endif %}
+        </nav>
+      </header>
+      <main class="main">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </body>
+</html>
