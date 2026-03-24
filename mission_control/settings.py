@@ -4,7 +4,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = "change-this-in-prod"
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1","localhost","100.107.120.111","147.93.113.71"]
+ALLOWED_HOSTS = ["127.0.0.1","localhost","100.107.120.111","147.93.113.71","novamission.cloud"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -63,6 +63,7 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+CSRF_TRUSTED_ORIGINS = ["https://novamission.cloud"]
 
 # Directory for Nova TTS audio files (served via nginx/static)
 NOVA_AUDIO_DIR = BASE_DIR / "static" / "nova_audio"

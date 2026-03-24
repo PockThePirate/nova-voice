@@ -210,6 +210,12 @@ body {
   color: var(--warn);
 }
 
+.qa-button-secondary.listening {
+  border-color: var(--accent);
+  color: var(--accent);
+  box-shadow: 0 0 12px rgba(62,245,255,0.6);
+}
+
 .qa-button-soft {
   border-color: var(--muted);
   color: var(--muted);

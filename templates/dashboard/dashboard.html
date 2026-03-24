@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}Nova Mission Control{% endblock %}
 {% block content %}
 
@@ -132,10 +133,12 @@
       <div class="panel-title">Voice Agents</div>
       <div class="panel-sub">Wake words and modes</div>
     </div>
-    <form method="post" action="{% url 'nova_voice_api' %}" id="nova-voice-form" class="nova-voice-form">
+    <form method="post" action="#" id="nova-voice-form" class="nova-voice-form">
       {% csrf_token %}
       <input type="text" name="text" placeholder="Type to talk to Nova" class="nova-input" />
       <button type="submit" class="qa-button qa-button-primary">Send</button>
+      <button type="button" class="qa-button qa-button-secondary" id="nova-mic-btn">🎙 Wake Nova</button>
+      <div id="nova-mic-status" class="nova-mic-status"></div>
     </form>
   </div>
   <ul class="list">
@@ -199,39 +202,7 @@
   </div>
 </div>
 
-<script>
-  (function () {
-    const form = document.getElementById("nova-voice-form");
-    if (!form) return;
-
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const input = form.querySelector("input[name='text']");
-      if (!input || !input.value.trim()) return;
-
-      const text = input.value.trim();
-      const csrf = form.querySelector("input[name='csrfmiddlewaretoken']").value;
-
-      try {
-        const res = await fetch("{% url 'nova_voice_api' %}", {
-          method: "POST",
-          headers: {
-            "X-CSRFToken": csrf,
-          },
-          body: new URLSearchParams({ text }),
-        });
-        const data = await res.json();
-        if (data.audio_url) {
-          const audio = new Audio(data.audio_url);
-          audio.play().catch(() => {});
-        }
-      } catch (err) {
-        console.error("Nova voice error", err);
-      } finally {
-        input.value = "";
-      }
-    });
-  })();
-</script>
+<script src="{% static 'js/nova.js' %}"></script>
+<script src="{% static 'js/nova_stream.js' %}"></script>
 
 {% endblock %}

@@ -109,7 +109,7 @@ def nova_voice_api(request):
     out_path = out_dir / filename
 
     async def synth(text, path):
-        communicate = edge_tts.Communicate(text, "en-US-JennyNeural")
+        communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
         await communicate.save(str(path))
 
     try:
