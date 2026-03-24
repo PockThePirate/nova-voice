@@ -1,0 +1,45 @@
+Nova mic: browser error "WebSocket connection to wss://…/ws/audio/nova failed"
+================================================================================
+
+The page and JS are fine. The TLS endpoint is not completing a WebSocket upgrade to
+uvicorn running mission_control.asgi:application.
+
+Real-world fix (this repo on srv): /etc/nginx/sites-available/mission_control had
+``location /ws/audio/nova`` → ``127.0.0.1:9000`` while ASGI runs on **8001**.
+Replace with **8001** (see deploy/nginx-site-mission_control.conf) and reload nginx.
+
+On the SERVER, verify in order:
+
+1) ASGI + FastAPI import (same venv as Django)
+   cd /home/pock/.openclaw/workspace/mission_control
+   .venv/bin/python manage.py nova_check_deploy --port 8001
+
+   You want: "FastAPI gateway import OK" AND "127.0.0.1:8001 accepts connections".
+
+2) systemd (if used)
+   sudo systemctl status uvicorn-django-nova-asgi.service
+   journalctl -u uvicorn-django-nova-asgi.service -n 50 --no-pager
+
+3) nginx — common mistakes
+   - map $http_upgrade $connection_upgrade { … } must live in http { }, NOT inside server { }.
+   - location / for novamission.cloud must proxy_pass http://127.0.0.1:8001 (or your upstream),
+     and MUST include:
+       proxy_http_version 1.1;
+       proxy_set_header Upgrade $http_upgrade;
+       proxy_set_header Connection $connection_upgrade;
+   - If location / still points to gunicorn only, HTTP "Send" works but WSS will ALWAYS fail.
+
+   Paste-ready snippets (adjust paths in include):
+     include /home/pock/.openclaw/workspace/mission_control/deploy/nginx-option-b-http-snippet.conf;
+     include /home/pock/.openclaw/workspace/mission_control/deploy/nginx-option-b-server-snippet.conf;
+
+   Then:
+     sudo nginx -t && sudo systemctl reload nginx
+
+4) Cloudflare / CDN
+   If the domain is orange-clouded, ensure WebSockets are allowed (Full SSL, not "DNS only" issues).
+
+5) Local bypass test (on server, with uvicorn on 8001)
+   pip install websockets  # or use websocat
+   python3 -c "import asyncio, websockets; asyncio.run(websockets.connect('ws://127.0.0.1:8001/ws/audio/nova'))"
+   If this fails, fix ASGI/gateway first before nginx.

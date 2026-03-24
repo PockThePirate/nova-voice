@@ -1,6 +1,12 @@
+import os
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Optional full WebSocket URL for Nova mic (e.g. wss://ws.novamission.cloud/ws/audio/nova).
+# If unset, the browser uses same host + data-nova-ws-path (/ws/audio/nova).
+_nova_ws_env = os.environ.get("NOVA_WS_URL", "").strip()
+NOVA_WS_URL = _nova_ws_env if _nova_ws_env.startswith(("ws://", "wss://")) else None
 
 SECRET_KEY = "change-this-in-prod"
 DEBUG = True
@@ -39,12 +45,14 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "dashboard.context_processors.nova_ws_url",
             ],
         },
     },
 ]
 
 WSGI_APPLICATION = "mission_control.wsgi.application"
+ASGI_APPLICATION = "mission_control.asgi.application"
 
 DATABASES = {
     "default": {
@@ -73,3 +81,22 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "dashboard"
 LOGOUT_REDIRECT_URL = "login"
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "nova_file": {
+            "class": "logging.FileHandler",
+            "filename": BASE_DIR / "nova_errors.log",
+            "level": "ERROR",
+        },
+    },
+    "loggers": {
+        "nova": {
+            "handlers": ["nova_file"],
+            "level": "ERROR",
+            "propagate": False,
+        },
+    },
+}

@@ -1,0 +1,73 @@
+# Nova voice: nginx + WebSocket
+#
+# Symptom: WebSocket to 'wss://novamission.cloud/ws/audio/nova' fails; POST /api/nova/voice/ works.
+#
+# Pick ONE deployment style.
+
+# =============================================================================
+# Option B (recommended if you only proxy to Django today): single ASGI upstream
+# =============================================================================
+# Run: uvicorn mission_control.asgi:application (see deploy/uvicorn-django-nova-asgi.service).
+# Django and /ws/audio/nova share one process; nginx does not need a separate WS-only location.
+#
+# Ready-made includes (uncommented files — use absolute paths on the server):
+#   In http { }:    include /path/to/mission_control/deploy/nginx-option-b-http-snippet.conf;
+#   In server { }: include /path/to/mission_control/deploy/nginx-option-b-server-snippet.conf;
+# Diagnose:        bash deploy/verify_nova_wss_stack.sh
+# Example systemd: deploy/uvicorn-django-nova-asgi.service.pock (paths for user pock)
+#
+# Inside http { } — map for Connection header (once per server block is enough if you include it):
+#
+#   map $http_upgrade $connection_upgrade {
+#       default upgrade;
+#       ''      close;
+#   }
+#
+# Inside server { } for novamission.cloud — your main location (replace the old proxy to gunicorn):
+#
+#   upstream mission_control_asgi {
+#       server 127.0.0.1:8001;
+#       keepalive 8;
+#   }
+#
+#   location / {
+#       proxy_pass http://mission_control_asgi;
+#       proxy_http_version 1.1;
+#       proxy_set_header Host $host;
+#       proxy_set_header X-Real-IP $remote_addr;
+#       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#       proxy_set_header X-Forwarded-Proto $scheme;
+#       proxy_set_header Upgrade $http_upgrade;
+#       proxy_set_header Connection $connection_upgrade;
+#       proxy_read_timeout 86400s;
+#       proxy_send_timeout 86400s;
+#   }
+#
+# Then: sudo nginx -t && sudo systemctl reload nginx
+
+# =============================================================================
+# Option A: gunicorn (WSGI) for Django + separate uvicorn for nova-audio-gateway
+# =============================================================================
+# Placement:
+#   - Put `upstream` inside `http { }`.
+#   - Put `location` inside `server { }` for novamission.cloud (TLS).
+#
+# ----- 1) Inside http { } -----
+upstream nova_audio_gateway {
+    server 127.0.0.1:8765;
+    keepalive 8;
+}
+
+# ----- 2) Inside server { } for novamission.cloud (TLS) -----
+location /ws/audio/nova {
+    proxy_pass http://nova_audio_gateway;
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "upgrade";
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_read_timeout 86400s;
+    proxy_send_timeout 86400s;
+}

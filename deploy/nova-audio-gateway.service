@@ -1,0 +1,29 @@
+# systemd unit for nova-audio-gateway (FastAPI WebSocket on loopback).
+#
+# Install (adjust paths and user):
+#   sudo cp mission_control/deploy/nova-audio-gateway.service /etc/systemd/system/
+#   sudo sed -i 's|REPLACE_WITH_PATH_TO_GATEWAY|/actual/path/to/nova-audio-gateway|g' /etc/systemd/system/nova-audio-gateway.service
+#   sudo sed -i 's|REPLACE_WITH_UVICORN|/actual/venv/bin/uvicorn|g' /etc/systemd/system/nova-audio-gateway.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now nova-audio-gateway.service
+#   sudo systemctl status nova-audio-gateway.service
+#
+# Nginx must proxy wss://novamission.cloud/ws/audio/nova to 127.0.0.1:8765 (see nova-websocket-nginx.conf.example).
+
+[Unit]
+Description=Nova audio WebSocket gateway (FastAPI uvicorn)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=REPLACE_WITH_PATH_TO_GATEWAY
+ExecStart=REPLACE_WITH_UVICORN app:app --host 127.0.0.1 --port 8765
+Restart=on-failure
+RestartSec=5
+# Optional: EnvironmentFile=-/etc/default/nova-audio-gateway
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,31 @@
+# Single-process Django + Nova WebSocket (combined ASGI).
+#
+# Use this instead of gunicorn+separate nova-audio-gateway when nginx only has one upstream.
+# Requires: repo layout with sibling ``nova-audio-gateway/`` next to ``mission_control/``,
+# venv with Django, uvicorn, fastapi, httpx (see requirements.txt).
+#
+# Install:
+#   sudo cp mission_control/deploy/uvicorn-django-nova-asgi.service /etc/systemd/system/
+#   sudo sed -i 's|REPLACE_WORKING_DIR|/path/to/mission_control|g' /etc/systemd/system/uvicorn-django-nova-asgi.service
+#   sudo sed -i 's|REPLACE_UVICORN|/path/to/venv/bin/uvicorn|g' /etc/systemd/system/uvicorn-django-nova-asgi.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now uvicorn-django-nova-asgi.service
+#
+# Nginx: proxy ALL HTTPS traffic to this port and enable WebSocket upgrades on that location
+# (see ``nova-websocket-nginx.conf.example`` — Option B).
+
+[Unit]
+Description=Nova Mission Control (Django ASGI + /ws/audio/nova)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=REPLACE_WORKING_DIR
+ExecStart=REPLACE_UVICORN mission_control.asgi:application --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

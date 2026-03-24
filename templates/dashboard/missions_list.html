@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Missions{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Missions</div>
+      <div class="panel-sub">Active mission logs</div>
+    </div>
+  </div>
+  <ul class="list">
+    {% for m in missions %}
+      <li class="list-item">
+        <div>
+          <div class="list-label">{{ m.title }}</div>
+          <div class="list-meta">Slug: {{ m.slug }}</div>
+        </div>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <a class="qa-button qa-button-primary" href="{% url 'mission_detail' m.slug %}">View</a>
+          <a class="qa-button qa-button-secondary" href="{% url 'mission_download' m.slug %}">Download</a>
+        </div>
+      </li>
+    {% empty %}
+      <li class="list-item">
+        <div class="list-meta">No missions defined yet.</div>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endblock %}

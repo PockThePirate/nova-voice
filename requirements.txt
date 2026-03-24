@@ -1,0 +1,8 @@
+# Mission Control + combined ASGI (Django + Nova WebSocket).
+# Install: pip install -r requirements.txt
+
+Django>=4.2
+uvicorn[standard]>=0.27
+fastapi>=0.100
+httpx>=0.25
+edge-tts>=6.0

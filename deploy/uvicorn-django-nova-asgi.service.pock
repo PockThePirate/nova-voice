@@ -1,0 +1,23 @@
+# Example unit for user ``pock`` on a typical OpenClaw workspace layout.
+# Install:
+#   sudo cp deploy/uvicorn-django-nova-asgi.service.pock /etc/systemd/system/uvicorn-django-nova-asgi.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now uvicorn-django-nova-asgi.service
+#
+# Stop gunicorn or any other service bound to 8001 before starting.
+
+[Unit]
+Description=Nova Mission Control (Django ASGI + /ws/audio/nova)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pock
+Group=pock
+WorkingDirectory=/home/pock/.openclaw/workspace/mission_control
+ExecStart=/home/pock/.openclaw/workspace/mission_control/.venv/bin/uvicorn mission_control.asgi:application --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

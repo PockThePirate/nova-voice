@@ -22,41 +22,6 @@
     </div>
   </div>
 
-  <div class="status-tile">
-    <div class="status-header">
-      <span class="status-label">Gateway / Nodes</span>
-      <span class="status-pill {% if nodes|length > 0 %}status-pill-online{% else %}status-pill-warn{% endif %}">
-        {% if nodes|length > 0 %}LINKED{% else %}NO NODES{% endif %}
-      </span>
-    </div>
-    <div class="status-body">
-      <div class="status-metric">
-        <span class="status-metric-label">Nodes</span>
-        <span class="status-metric-value">{{ nodes|length }}</span>
-      </div>
-      <div class="status-metric">
-        <span class="status-metric-label">Online</span>
-        <span class="status-metric-value">{{ nodes|length }}</span>
-      </div>
-    </div>
-  </div>
-
-  <div class="status-tile">
-    <div class="status-header">
-      <span class="status-label">Voice Agents</span>
-      <span class="status-pill status-pill-soft">WAKE WORDS</span>
-    </div>
-    <div class="status-body">
-      <div class="status-metric">
-        <span class="status-metric-label">Voice Agents</span>
-        <span class="status-metric-value">{{ voice_agents|length }}</span>
-      </div>
-      <div class="status-metric">
-        <span class="status-metric-label">Active</span>
-        <span class="status-metric-value">{{ voice_agents|length }}</span>
-      </div>
-    </div>
-  </div>
 
   <div class="status-tile quick-actions">
     <div class="status-header">
@@ -71,29 +36,35 @@
   </div>
 </div>
 
-{# SECOND ROW: MISSIONS + NODES #}
+{# SECOND ROW: TODAY'S FOCUS + MISSION LOGS (FILES) #}
 <div class="panel" style="grid-column: 1 / span 1;">
   <div class="panel-header">
     <div>
-      <div class="panel-title">Missions</div>
-      <div class="panel-sub">Latest mission states</div>
+      <div class="panel-title">Todays Focus</div>
+      <div class="panel-sub">
+        {% if focus_mission %}{{ focus_mission.title }}{% else %}No focus mission yet{% endif %}
+      </div>
     </div>
-    <span class="chip">{{ missions|length }} tracked</span>
+    <div style="display:flex; gap:6px; align-items:center;">
+      {% if focus_mission %}
+        <a class="qa-button qa-button-secondary" href="{% url 'mission_detail' focus_mission.slug %}">Open Log</a>
+        <button
+          type="button"
+          class="qa-button qa-button-soft"
+          id="focus-play"
+          {% if focus_summary_text %}data-focus-summary="{{ focus_summary_text }}"{% endif %}
+        >Play Summary</button>
+      {% endif %}
+    </div>
   </div>
   <ul class="list">
-    {% for mission in missions %}
+    {% for a in focus_actions %}
       <li class="list-item">
-        <div>
-          <div class="list-label">{{ mission.name }}</div>
-          <div class="list-meta">{{ mission.description|default:"No description" }}</div>
-        </div>
-        <span class="badge {% if mission.status == 'running' %}badge-success{% elif mission.status == 'failed' %}badge-danger{% elif mission.status == 'paused' %}badge-warn{% endif %}">
-          {{ mission.get_status_display }}
-        </span>
+        <div class="list-label">{{ a }}</div>
       </li>
     {% empty %}
       <li class="list-item">
-        <div class="list-meta">No missions yet.</div>
+        <div class="list-meta">No next actions defined. Edit the mission log to add them.</div>
       </li>
     {% endfor %}
   </ul>
@@ -102,43 +73,54 @@
 <div class="panel" style="grid-column: 2 / span 1;">
   <div class="panel-header">
     <div>
-      <div class="panel-title">Nodes</div>
-      <div class="panel-sub">Connected cybernetic endpoints</div>
+      <div class="panel-title">Mission Logs</div>
+      <div class="panel-sub">File-based mission artifacts</div>
     </div>
-    <span class="chip">{{ nodes|length }} nodes</span>
+    <a class="qa-button qa-button-secondary" href="{% url 'missions_list' %}">Open Missions View</a>
   </div>
   <ul class="list">
-    {% for node in nodes %}
+    {% for m in mission_files %}
       <li class="list-item">
         <div>
-          <div class="list-label">{{ node.name }}</div>
-          <div class="list-meta">{{ node.address|default:"(no address)" }}</div>
+          <div class="list-label">{{ m.title }}</div>
+          <div class="list-meta">Slug: {{ m.slug }}</div>
         </div>
-        <span class="badge {% if node.online %}badge-success{% else %}badge-danger{% endif %}">
-          {% if node.online %}online{% else %}offline{% endif %}
-        </span>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <a class="qa-button qa-button-primary" href="{% url 'mission_detail' m.slug %}">View</a>
+          <a class="qa-button qa-button-secondary" href="{% url 'mission_download' m.slug %}">Download</a>
+        </div>
       </li>
     {% empty %}
       <li class="list-item">
-        <div class="list-meta">No nodes registered.</div>
+        <div class="list-meta">No mission logs yet.</div>
       </li>
     {% endfor %}
   </ul>
 </div>
 
-{# THIRD ROW: VOICE AGENTS + MISSION TIMELINE #}
+
+{# VOICE AGENTS + MISSION TIMELINE #}
 <div class="panel" style="grid-column: 1 / span 1;">
   <div class="panel-header">
     <div>
       <div class="panel-title">Voice Agents</div>
       <div class="panel-sub">Wake words and modes</div>
     </div>
-    <form method="post" action="#" id="nova-voice-form" class="nova-voice-form">
+    <form
+      method="post"
+      action="{% url 'nova_voice_api' %}"
+      id="nova-voice-form"
+      class="nova-voice-form"
+      data-nova-ajax-submit="true"
+      data-nova-ws-path="/ws/audio/nova"
+      {% if nova_ws_url %}data-nova-ws-url="{{ nova_ws_url }}"{% endif %}
+    >
       {% csrf_token %}
       <input type="text" name="text" placeholder="Type to talk to Nova" class="nova-input" />
       <button type="submit" class="qa-button qa-button-primary">Send</button>
-      <button type="button" class="qa-button qa-button-secondary" id="nova-mic-btn">🎙 Wake Nova</button>
-      <div id="nova-mic-status" class="nova-mic-status"></div>
+      <button type="button" class="qa-button qa-button-secondary" id="nova-mic-btn" data-nova-mic-toggle>🎙 Wake Nova</button>
+      <div id="nova-mic-status" class="nova-mic-status" aria-live="polite"></div>
+      <p class="nova-mic-hint">Debug voice: DevTools → Network → <strong>WS</strong> → Preserve log → click Wake Nova. URL: <code id="nova-ws-url-hint"></code></p>
     </form>
   </div>
   <ul class="list">
@@ -202,7 +184,9 @@
   </div>
 </div>
 
-<script src="{% static 'js/nova.js' %}"></script>
-<script src="{% static 'js/nova_stream.js' %}"></script>
+<script src="{% static 'js/nova_stream.js' %}" defer></script>
+<script src="{% static 'js/nova.js' %}" defer></script>
+<script src="{% static 'js/mission_focus.js' %}" defer></script>
+<script defer src="{% static 'js/nova_ws_hint.js' %}"></script>
 
 {% endblock %}

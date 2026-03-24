@@ -16,3 +16,22 @@ If you want to restore from the raw backup of the OpenClaw config taken before a
     openclaw gateway restart
 
 (Replace `*` with the exact timestamp suffix you want to restore.)
+
+Nova voice: Django + WebSocket routing
+--------------------------------------
+- Django (`mission_control`) serves the dashboard and POST `/api/nova/voice/` only. It does not speak WebSocket.
+- `nova-audio-gateway` (FastAPI) serves `GET`/`WS` at `/ws/audio/nova` and expects the browser to open `wss://<same-host>/ws/audio/nova` (or `ws://` on HTTP).
+- **Production:** Put nginx (or similar) in front: proxy `/` to Django, proxy `/ws/audio/nova` to the gateway upstream (e.g. `127.0.0.1:PORT`). The dashboard JS uses `window.location.host`, so path-only `/ws/audio/nova` works when WS and HTTP share the same host.
+- **Local dev:** Running only `runserver` will make WebSocket connection attempts fail (nothing listens on that path). Options: (1) run a local reverse proxy that merges Django + gateway, or (2) run the gateway on another port and set on `#nova-voice-form` the attribute `data-nova-ws-url="ws://127.0.0.1:<gateway-port>/ws/audio/nova"` so `NovaStreamClient` uses a full URL (see `nova_stream.js`).
+
+- **Production symptom:** Console shows `WebSocket connection to 'wss://novamission.cloud/ws/audio/nova' failed` but typed Send works. Typical causes: (1) nginx sends WebSocket traffic to **gunicorn/WSGI** (no Upgrade), or (2) nothing listens on a dedicated gateway port.
+
+- **Fix Option B (single upstream, recommended):** Run **combined ASGI** so Django and `/ws/audio/nova` share one uvicorn process: `uvicorn mission_control.asgi:application` (systemd: `deploy/uvicorn-django-nova-asgi.service`). Install deps: `pip install -r requirements.txt`. Point nginx **location /** at that port and add `Upgrade` + `Connection $connection_upgrade` (see **Option B** in `deploy/nova-websocket-nginx.conf.example`). Default import path expects `nova-audio-gateway/` next to `mission_control/`; otherwise set env `NOVA_AUDIO_GATEWAY_ROOT` to the folder containing `app.py`.
+
+- **Fix Option A (two processes):** Standalone gateway on 8765 (`deploy/nova-audio-gateway.service`) plus **separate** nginx `location /ws/audio/nova` (see **Option A** in `deploy/nova-websocket-nginx.conf.example`).
+
+- **Quick diagnosis on the server:** `bash deploy/verify_nova_wss_stack.sh` (set `MC_ROOT` if not under `~/.openclaw/workspace/mission_control`). **Nginx Option B:** `include` `deploy/nginx-option-b-http-snippet.conf` inside `http {}` and `deploy/nginx-option-b-server-snippet.conf` inside the TLS `server {}` for novamission.cloud, then `sudo nginx -t && sudo systemctl reload nginx`. **systemd example for user pock:** `deploy/uvicorn-django-nova-asgi.service.pock`.
+
+- **Ordered checklist:** `deploy/CHECKLIST-NOVA-WSS.txt`. **Django command:** `python manage.py nova_check_deploy --port 8001` (from `mission_control` with venv).
+
+- **Split WebSocket host:** Set environment variable `NOVA_WS_URL` to a full URL (e.g. `wss://ws.novamission.cloud/ws/audio/nova`) before starting Django; the dashboard form gets `data-nova-ws-url` automatically. The gateway on that host must still accept the path `/ws/audio/nova` (or adjust path consistently).

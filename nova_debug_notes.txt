@@ -1,0 +1,10 @@
+nova_stream.js (WebSocket client)
+this.sessionId never updated — You send session_id: crypto.randomUUID() in the start message but don’t assign that value to this.sessionId, so the rest of the class can’t reliably match what the server thinks the session is.
+Only a partial view — With just connect() / onopen, typical gaps are missing onerror / onclose, no clear reconnect or “ready before audio” rules, and easy leaks if MediaRecorder / getUserMedia streams aren’t stopped on disconnect or navigation.
+crypto.randomUUID() — Fine on modern HTTPS (and usually localhost); can be a problem on some non-secure or very old setups without a fallback.
+nova.js (form bootstrap)
+Comment vs name — NOVA_STREAM_FAILED === false means “not failed” (healthy). The comment “assume OK until error” matches that, but the name is easy to misread; worth aligning comment + name so “false = healthy” is obvious.
+Init only when undefined — If something else set NOVA_STREAM_FAILED earlier, this block won’t reset it. That’s only correct if you want failure to stick across runs; otherwise you can get a stale flag on a fresh page load.
+useStream = true is fixed — No check that the WS URL, server, or browser actually supports the path you use; you may always prefer streaming even when it will fail.
+Snippet is incomplete — From this slice alone you can’t see duplicate listener issues, whether streamClient is ever created/disposed, or CSRF/submit flow; those are where bugs usually show up next.
+One-line contrast: nova_stream.js mainly risks wrong or missing client session state and lifecycle; nova.js mainly risks misleading globals, stale flags, and always-on streaming with no guardrails (plus whatever the rest of the file does with the form and client).

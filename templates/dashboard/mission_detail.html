@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Mission: {{ slug }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Mission: {{ slug }}</div>
+      <div class="panel-sub">Raw mission log (.md)</div>
+    </div>
+    <a class="qa-button qa-button-secondary" href="{% url 'mission_download' slug %}">Download .md</a>
+  </div>
+  <pre style="white-space: pre-wrap; font-family: var(--font-mono, monospace); font-size: 0.9rem;">
+{{ content|escape }}
+  </pre>
+</div>
+{% endblock %}
