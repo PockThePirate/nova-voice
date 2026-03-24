@@ -1,0 +1,18 @@
+Nova Mission Control - Notes
+============================
+
+Initial backup commit created on first git init.
+
+To restore this exact initial state later:
+
+    cd /home/pock/.openclaw/workspace/mission_control
+    git reset --hard ab65555
+
+Where `ab65555` is the initial commit hash (use `git log --oneline` to confirm).
+
+If you want to restore from the raw backup of the OpenClaw config taken before adding the nova agent:
+
+    cp ~/.openclaw/openclaw.json.backup-nova-* ~/.openclaw/openclaw.json
+    openclaw gateway restart
+
+(Replace `*` with the exact timestamp suffix you want to restore.)

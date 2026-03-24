@@ -7,6 +7,7 @@ from django.conf import settings
 import asyncio
 import uuid
 import os
+import subprocess
 
 import edge_tts
 
@@ -59,8 +60,8 @@ def nova_voice_api(request):
     if not text:
         return JsonResponse({"error": "text required"}, status=400)
 
-    # Placeholder: send text to Nova sub-agent here. For now, echo the utterance
-    # after stripping an optional wake word ("nova" / "hey nova").
+    # Route the utterance to the `nova` agent via the OpenClaw CLI, after
+    # stripping an optional wake word ("Nova" / "Hey Nova").
     lowered = text.lower()
     if lowered.startswith("hey nova "):
         clean = text[len("hey nova "):].lstrip()
@@ -68,7 +69,38 @@ def nova_voice_api(request):
         clean = text[len("nova "):].lstrip()
     else:
         clean = text
+
     reply_text = clean
+    try:
+        # Use the official CLI to talk to the `nova` agent so we don't have
+        # to re‑implement the Gateway protocol here.
+        proc = subprocess.run(
+            [
+                "openclaw",
+                "agent",
+                "--agent",
+                "nova",
+                "--message",
+                clean,
+                "--no-color",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+        if proc.returncode == 0 and proc.stdout.strip():
+            # Take the last non-empty line from stdout, to strip any
+            # preamble / noise and keep just Nova's reply.
+            lines = [ln.strip() for ln in proc.stdout.splitlines() if ln.strip()]
+            if lines:
+                reply_text = lines[-1]
+            else:
+                reply_text = clean
+        else:
+            # On error, fall back to a simple echo so the UX still works.
+            reply_text = clean
+    except Exception:
+        reply_text = clean
 
     # Synthesize reply with Edge TTS (Natasha) to an mp3 file under static/nova_audio
     out_dir = getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio")
@@ -77,7 +109,7 @@ def nova_voice_api(request):
     out_path = out_dir / filename
 
     async def synth(text, path):
-        communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
+        communicate = edge_tts.Communicate(text, "en-US-JennyNeural")
         await communicate.save(str(path))
 
     try:
