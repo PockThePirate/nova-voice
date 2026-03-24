@@ -1,0 +1,8 @@
+# Daily Mission Summary
+# This cron job runs the daily mission summary command
+
+# Run daily at 9:00 AM UTC (adjust TZ as needed)
+0 9 * * * cd /home/pock/.openclaw/workspace/mission_control && /home/pock/.openclaw/workspace/mission_control/.venv/bin/python manage.py mission_daily_summary --notify >> /home/pock/.openclaw/workspace/mission_control/logs/cron_summary.log 2>&1
+
+# Health check (optional - runs 1 hour after summary)
+0 10 * * * cd /home/pock/.openclaw/workspace/mission_control && /home/pock/.openclaw/workspace/mission_control/.venv/bin/python manage.py mission_healthcheck >> /home/pock/.openclaw/workspace/mission_control/logs/cron_health.log 2>&1
