@@ -3,23 +3,79 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
 from django.http import JsonResponse, FileResponse, Http404
 from django.conf import settings
+from django.views.decorators.csrf import csrf_exempt
 
-import asyncio
-import uuid
-import os
-import subprocess
 import logging
 from pathlib import Path
 
-import edge_tts
-
 from .models import Agent, NodeStatus, Mission, Event
+from .services import (
+    EdgeTTSProvider,
+    OpenClawCLIProvider,
+    ProviderRuntimeConfig,
+    VoiceOrchestrator,
+)
 
 logger = logging.getLogger("nova")
 
 
+def _record_event(level: str, source: str, message: str) -> None:
+    """
+    Persist one timeline event without breaking request flow.
+
+    Args:
+        level: Event severity (`info`, `warn`, or `error`).
+        source: Event producer name.
+        message: Human-readable event text.
+
+    Returns:
+        None
+
+    Example:
+        _record_event(level="info", source="voice_api", message="Request accepted")
+    """
+    try:
+        Event.objects.create(level=level, source=source, message=message)
+    except Exception:
+        logger.exception("Failed to persist Event")
+
+
+def _run_voice_orchestration(text: str, source: str) -> tuple[dict, int]:
+    """
+    Execute the Nova voice orchestration pipeline and return API payload/status.
+
+    Args:
+        text: Input text to send to Nova.
+        source: Source label for timeline events.
+
+    Returns:
+        tuple[dict, int]: JSON payload and HTTP status code.
+
+    Example:
+        payload, status = _run_voice_orchestration("status update", "voice_api")
+    """
+    _record_event(level="info", source=source, message="Nova voice request received")
+    orchestrator = VoiceOrchestrator(
+        agent_provider=OpenClawCLIProvider(agent_name="nova", timeout_seconds=60),
+        tts_provider=EdgeTTSProvider(voice_name="en-US-AriaNeural"),
+        output_dir=getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio"),
+        output_url_prefix="/static/nova_audio/",
+    )
+    result = orchestrator.run(raw_text=text)
+    if not result.ok:
+        _record_event(
+            level="error",
+            source=source,
+            message=f"Nova voice request failed with error={result.error or 'unknown'}",
+        )
+        return {"error": result.error or "voice_failed"}, 500
+    _record_event(level="info", source=source, message="Nova voice reply generated")
+    return {"reply_text": result.reply_text, "audio_url": result.audio_url}, 200
+
+
 @login_required
 def dashboard_view(request):
+    runtime_config = ProviderRuntimeConfig.from_settings()
     agents = Agent.objects.all()
     voice_agents = agents.filter(kind=Agent.VOICE)
     nodes = NodeStatus.objects.all()
@@ -99,6 +155,7 @@ def dashboard_view(request):
         "focus_mission": focus_mission,
         "focus_actions": focus_actions,
         "focus_summary_text": focus_summary_text,
+        "provider_capabilities": runtime_config.capabilities,
     }
     return render(request, "dashboard/dashboard.html", context)
 
@@ -225,92 +282,31 @@ def nova_voice_api(request):
     text = request.POST.get("text", "").strip()
     if not text:
         return JsonResponse({"error": "text required"}, status=400)
+    payload, status = _run_voice_orchestration(text=text, source="voice_api")
+    return JsonResponse(payload, status=status)
 
-    # Route the utterance to the `nova` agent via the OpenClaw CLI, after
-    # stripping an optional wake word ("Nova" / "Hey Nova").
-    lowered = text.lower()
-    if lowered.startswith("hey nova "):
-        clean = text[len("hey nova "):].lstrip()
-    elif lowered.startswith("nova "):
-        clean = text[len("nova "):].lstrip()
-    else:
-        clean = text
 
-    reply_text = clean
-    try:
-        # Use the official CLI to talk to the `nova` agent so we don't have
-        # to re‑implement the Gateway protocol here.
-        proc = subprocess.run(
-            [
-                "openclaw",
-                "agent",
-                "--agent",
-                "nova",
-                "--message",
-                clean,
-                "--no-color",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=60,
-        )
-        if proc.returncode == 0 and proc.stdout.strip():
-            # Take the last non-empty line from stdout, to strip any
-            # preamble / noise and keep just Nova's reply.
-            lines = [ln.strip() for ln in proc.stdout.splitlines() if ln.strip()]
-            if lines:
-                reply_text = lines[-1]
-            else:
-                reply_text = clean
-        else:
-            logger.error(
-                "Nova CLI failed",
-                extra={
-                    "stdout": proc.stdout,
-                    "stderr": proc.stderr,
-                    "returncode": proc.returncode,
-                },
-            )
-            reply_text = clean
-    except Exception:
-        logger.exception("Nova CLI exception")
-        reply_text = clean
+@csrf_exempt
+@require_POST
+def nova_voice_gateway_api(request):
+    """
+    Internal endpoint for gateway STT call-through without browser CSRF/session requirements.
 
-    # Synthesize reply with Edge TTS (Natasha) to an mp3 file under static/nova_audio
-    out_dir = getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio")
-    os.makedirs(out_dir, exist_ok=True)
-    filename = f"{uuid.uuid4()}.mp3"
-    out_path = out_dir / filename
+    Args:
+        request: HttpRequest containing transcript text and optional gateway token header.
 
-    async def synth(text, path):
-        communicate = edge_tts.Communicate(text, "en-US-AriaNeural")
-        await communicate.save(str(path))
+    Returns:
+        JsonResponse: Same schema as `nova_voice_api`.
 
-    try:
-        asyncio.run(synth(reply_text, out_path))
-    except RuntimeError:
-        # If an event loop is already running, fall back to create_task pattern
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(synth(reply_text, out_path))
-    except Exception:
-        logger.exception("Edge TTS synth failed", extra={"reply_text": reply_text})
-        return JsonResponse({"error": "tts_failed"}, status=500)
-
-    # Best-effort cleanup: remove audio files older than 1 hour on each request
-    try:
-      import time
-      cutoff = time.time() - 3600
-      for entry in os.scandir(out_dir):
-          try:
-              if entry.is_file() and entry.stat().st_mtime < cutoff:
-                  os.remove(entry.path)
-          except Exception:
-              # Cleanup failures shouldn't break replies
-              logger = logging.getLogger("nova")
-              logger.exception("Failed to remove old nova audio file")
-    except Exception:
-      pass
-
-    audio_url = f"/static/nova_audio/{filename}"
-
-    return JsonResponse({"reply_text": reply_text, "audio_url": audio_url})
+    Example:
+        POST /api/nova/voice/internal/ with form field `text`.
+    """
+    expected_token = getattr(settings, "NOVA_GATEWAY_INTERNAL_TOKEN", "").strip()
+    provided_token = request.headers.get("X-Nova-Gateway-Token", "").strip()
+    if expected_token and provided_token != expected_token:
+        return JsonResponse({"error": "forbidden"}, status=403)
+    text = request.POST.get("text", "").strip()
+    if not text:
+        return JsonResponse({"error": "text required"}, status=400)
+    payload, status = _run_voice_orchestration(text=text, source="voice_gateway_api")
+    return JsonResponse(payload, status=status)

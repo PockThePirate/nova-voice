@@ -12,8 +12,8 @@
 (function () {
   "use strict";
 
-  const MIC_LABEL_IDLE = "🎙 Wake Nova";
-  const MIC_LABEL_ACTIVE = "⏹ Stop";
+  const MIC_LABEL_IDLE = "Tap to speak";
+  const MIC_LABEL_ACTIVE = "Tap to send";
 
   const form = document.getElementById("nova-voice-form");
   if (!form) {
@@ -30,6 +30,21 @@
     if (statusEl) {
       statusEl.textContent = message || "";
     }
+  }
+
+  /**
+   * Attempt reply audio playback and report blocked autoplay.
+   * @param {string} audioUrl Static audio URL returned by Nova API
+   */
+  function playReplyAudio(audioUrl) {
+    if (!audioUrl) {
+      return;
+    }
+    const player = new Audio(audioUrl);
+    player.play().catch(function (playErr) {
+      console.error("Nova audio play error:", playErr);
+      setStatus("Reply ready (tap screen to enable audio playback).");
+    });
   }
 
   /**
@@ -57,52 +72,22 @@
   }
 
   let streamClient = null;
+  let streamState = "idle"; // idle | starting | recording | stopping
+  let wsReplyPending = false;
+  let stopTimeoutId = null;
 
   const wsPath = form.getAttribute("data-nova-ws-path") || "/ws/audio/nova";
   const wsUrlAttr = form.getAttribute("data-nova-ws-url");
   const wsUrl =
     wsUrlAttr && (wsUrlAttr.indexOf("ws:") === 0 || wsUrlAttr.indexOf("wss:") === 0) ? wsUrlAttr : null;
 
-  const startBtn =
-    form.querySelector("[data-nova-stream-start]") || document.getElementById("nova-stream-start");
-  const stopBtn =
-    form.querySelector("[data-nova-stream-stop]") || document.getElementById("nova-stream-stop");
-  const micToggleBtn = document.getElementById("nova-mic-btn");
-  const useMicToggle = micToggleBtn && micToggleBtn.hasAttribute("data-nova-mic-toggle");
+  const startBtn = null; // not used in PTT mode
+  const stopBtn = null;  // not used in PTT mode
+  const micToggleBtn = document.getElementById("nova-ptt-btn");
+  const useMicToggle = !!micToggleBtn;
 
-  // Wake-listening client (front-end only). Uses ScriptProcessorNode and can
-  // be wired to a client-side wake engine (e.g. Vosk WASM) via NovaWakeEngine.
+  // No wake-word engine in PTT mode; tap to start/stop streaming instead.
   let wakeClient = null;
-  if (typeof window.NovaWakeClient === "function") {
-    wakeClient = new window.NovaWakeClient({
-      onWake: function () {
-        // When wake word fires, start streaming if not already active.
-        if (!streamClient) {
-          handleStartClick();
-        }
-      },
-    });
-  }
-
-  // Initialize Vosk wake engine if available and wire it into wakeClient
-  if (window.NovaWakeEngine && typeof window.NovaWakeEngine.init === "function") {
-    window.NovaWakeEngine
-      .init({ debug: false })
-      .then(function () {
-        if (typeof window.NovaWakeEngine.setOnWake === "function" && wakeClient) {
-          window.NovaWakeEngine.setOnWake(function () {
-            if (wakeClient && typeof wakeClient.onWake === "function") {
-              // Delegate to the same handler NovaWakeClient uses when it
-              // detects wake locally (start streaming, etc.).
-              wakeClient.onWake();
-            }
-          });
-        }
-      })
-      .catch(function (err) {
-        console.error("NovaWakeEngine init failed:", err);
-      });
-  }
 
   /**
    * Whether WebSocket streaming is available right now (lazy; scripts may load in any order).
@@ -116,16 +101,42 @@
    * @param {boolean} streaming
    */
   function setUiStreaming(streaming) {
-    if (startBtn) {
-      startBtn.disabled = streaming;
-    }
-    if (stopBtn) {
-      stopBtn.disabled = !streaming;
-    }
     if (useMicToggle && micToggleBtn) {
       micToggleBtn.disabled = false;
       micToggleBtn.textContent = streaming ? MIC_LABEL_ACTIVE : MIC_LABEL_IDLE;
+      if (streaming) {
+        micToggleBtn.classList.add("recording");
+      } else {
+        micToggleBtn.classList.remove("recording");
+      }
     }
+  }
+
+  /**
+   * Set internal stream lifecycle state and emit structured diagnostics.
+   * @param {string} nextState Target state value
+   * @param {string} reason Human-readable reason
+   */
+  function setStreamState(nextState, reason) {
+    streamState = nextState;
+    console.info("[PTT_STATE]", { state: nextState, reason: reason || "" });
+  }
+
+  function clearStopTimeout() {
+    if (stopTimeoutId) {
+      window.clearTimeout(stopTimeoutId);
+      stopTimeoutId = null;
+    }
+  }
+
+  function finalizePendingStop(reason) {
+    clearStopTimeout();
+    wsReplyPending = false;
+    if (streamClient) {
+      streamClient.closeSocket();
+      streamClient = null;
+    }
+    setStreamState("idle", reason || "stop_finalized");
   }
 
   function teardownStream() {
@@ -133,6 +144,7 @@
       streamClient.disconnect();
       streamClient = null;
     }
+    setStreamState("idle", "teardown");
     setUiStreaming(false);
     setStatus("");
   }
@@ -159,11 +171,16 @@
   }
 
   async function handleStartClick() {
+    if (streamState === "starting" || streamState === "recording") {
+      console.info("[PTT] ignoring start; active state:", streamState);
+      return;
+    }
     if (!canUseStream()) {
       window.NOVA_STREAM_FAILED = true;
       setStatus("Voice stream unavailable (WebSocket client not loaded).");
       return;
     }
+    setStreamState("starting", "tap_start");
     setUiStreaming(true);
     setStatus("Connecting…");
     let voiceWsOpened = false;
@@ -171,6 +188,9 @@
       streamClient = new window.NovaStreamClient(wsUrl ? { wsUrl: wsUrl } : { path: wsPath });
       streamClient.onConnectionLost = function (ev) {
         streamClient = null;
+        clearStopTimeout();
+        wsReplyPending = false;
+        setStreamState("idle", "connection_lost");
         setUiStreaming(false);
         if (!voiceWsOpened) {
           setStatus(
@@ -186,17 +206,42 @@
       // utterance and stop the stream. This will transition the status to
       // "Query sent…" via handleStopClick().
       streamClient.onSilence = function () {
+        console.info("[PTT] silence detected; stopping");
         handleStopClick();
       };
       streamClient.onMessage = function (event) {
         try {
           const data = JSON.parse(event.data);
           if (data.type === "status" && data.state === "listening") {
+            setStreamState("recording", "server_listening");
             setStatus("Listening…");
+          } else if (data.type === "status" && data.state === "idle") {
+            setStreamState("idle", "server_idle");
+            if (wsReplyPending) {
+              setStatus("Processing ended without a reply. Check gateway logs.");
+              finalizePendingStop("server_idle_without_reply");
+            }
+          } else if (data.type === "status" && data.event === "stop_ack") {
+            setStatus("Stop received. Processing...");
+          } else if (data.type === "status" && data.state === "processing" && data.event === "transcribing_started") {
+            setStatus("Transcribing...");
+          } else if (data.type === "status" && data.state === "processing" && data.event === "transcribing_done") {
+            if (data.transcript) {
+              setStatus('Heard: "' + data.transcript + '"');
+            } else {
+              setStatus("Transcribed.");
+            }
+          } else if (data.type === "status" && data.state === "processing" && data.event === "nova_request_started") {
+            setStatus("Thinking...");
+          } else if (data.type === "status" && data.state === "idle" && data.event === "nova_request_done") {
+            finalizePendingStop("server_done");
           } else if (data.type === "reply" && data.reply_text) {
             setStatus(data.reply_text);
+            playReplyAudio(data.audio_url);
+            finalizePendingStop("reply_received");
           } else if (data.type === "error" && data.message) {
             setStatus("Error: " + data.message);
+            finalizePendingStop("error_received");
           }
         } catch (e) {
           /* non-JSON server messages ignored */
@@ -204,14 +249,26 @@
       };
       streamClient.onReady = function () {
         voiceWsOpened = true;
+        setStreamState("starting", "socket_open");
         setStatus("Listening…");
         streamClient
           .startCapture()
           .catch(function (err) {
             console.error("Nova capture error:", err);
             window.NOVA_STREAM_FAILED = true;
-            setStatus("Microphone error: " + (err && err.message ? err.message : "denied or unavailable"));
+            var message = err && err.message ? err.message : "denied or unavailable";
+            if (err && err.name === "NotAllowedError") {
+              message = "microphone permission denied";
+            } else if (err && err.name === "NotFoundError") {
+              message = "no microphone device found";
+            }
+            setStatus("Microphone error: " + message);
             teardownStream();
+          })
+          .then(function () {
+            if (streamClient) {
+              setStreamState("recording", "capture_started");
+            }
           });
       };
       streamClient.connect();
@@ -224,63 +281,39 @@
   }
 
   function handleStopClick() {
+    if (streamState === "idle" || streamState === "stopping") {
+      console.info("[PTT] ignoring stop; state:", streamState);
+      return;
+    }
+    setStreamState("stopping", "tap_stop");
+    wsReplyPending = true;
     if (streamClient) {
-      streamClient.disconnect();
-      streamClient = null;
+      streamClient.requestStop();
     }
     setUiStreaming(false);
-    // User has finished speaking; indicate that the query is on its way
-    // to Nova before a reply is available.
-    setStatus("Query sent…");
+    setStatus("Stopping recording…");
+    clearStopTimeout();
+    stopTimeoutId = window.setTimeout(function () {
+      if (wsReplyPending) {
+        setStatus("Timed out waiting for server reply.");
+        finalizePendingStop("timeout_waiting_reply");
+      }
+    }, 25000);
   }
 
   function handleMicToggleClick(e) {
     e.preventDefault();
 
-    // Wake mode: mic button controls continuous wake listening; actual
-    // conversation streaming starts when the wake client fires.
-    if (wakeClient) {
-      if (wakeClient.isListening()) {
-        // Stop wake listening and any active stream.
-        wakeClient.stop();
-        if (streamClient) {
-          handleStopClick();
-        } else {
-          setUiStreaming(false);
-          setStatus("");
-        }
-      } else {
-        // Start wake listening; wakeClient.onWake will start streaming.
-        wakeClient.start();
-        if (useMicToggle && micToggleBtn) {
-          micToggleBtn.disabled = false;
-          micToggleBtn.textContent = MIC_LABEL_ACTIVE;
-        }
-        setStatus("Listening for wake word…");
-      }
-      return;
-    }
-
-    // Fallback: original push-to-talk behavior if wakeClient is unavailable.
-    if (streamClient) {
+    // PTT mode: first tap starts streaming; second tap stops and sends.
+    if (streamState === "starting" || streamState === "recording") {
+      // Currently recording: stop and send to backend.
       handleStopClick();
     } else {
+      // Not recording yet: start.
       handleStartClick();
     }
   }
 
-  if (startBtn) {
-    startBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      handleStartClick();
-    });
-  }
-  if (stopBtn) {
-    stopBtn.addEventListener("click", function (e) {
-      e.preventDefault();
-      handleStopClick();
-    });
-  }
   if (useMicToggle && micToggleBtn) {
     micToggleBtn.addEventListener("click", handleMicToggleClick);
   }
@@ -320,13 +353,7 @@
           const reply = result.data.reply_text || "";
           setStatus(reply || "OK");
           const audioUrl = result.data.audio_url;
-          if (audioUrl) {
-            const player = new Audio(audioUrl);
-            player.play().catch(function (playErr) {
-              console.error("Nova audio play error:", playErr);
-              setStatus(reply + " (audio playback blocked)");
-            });
-          }
+          playReplyAudio(audioUrl);
         })
         .catch(function (err) {
           console.error("Nova form submit error:", err);
@@ -367,4 +394,65 @@
 
   window.addEventListener("pagehide", teardownStream);
   setUiStreaming(false);
+
+  // Attach console mirroring to the on-page console panel
+  (function attachNovaConsole() {
+    var panel = document.getElementById("nova-console");
+    var clearBtn = document.getElementById("nova-console-clear");
+    var copyBtn = document.getElementById("nova-console-copy");
+    if (!panel) return;
+
+    function appendLine(kind, args) {
+      var line = document.createElement("div");
+      line.className = "console-line console-line-" + kind;
+      var text = Array.prototype.map.call(args, function (a) {
+        try {
+          if (typeof a === "object") return JSON.stringify(a);
+          return String(a);
+        } catch (_) {
+          return String(a);
+        }
+      }).join(" ");
+      line.textContent = "[" + kind.toUpperCase() + "] " + text;
+      panel.appendChild(line);
+      panel.scrollTop = panel.scrollHeight;
+    }
+
+    var origLog = console.log;
+    var origInfo = console.info;
+    var origWarn = console.warn;
+    var origError = console.error;
+
+    console.log = function () {
+      appendLine("log", arguments);
+      return origLog && origLog.apply(console, arguments);
+    };
+    console.info = function () {
+      appendLine("info", arguments);
+      return origInfo && origInfo.apply(console, arguments);
+    };
+    console.warn = function () {
+      appendLine("warn", arguments);
+      return origWarn && origWarn.apply(console, arguments);
+    };
+    console.error = function () {
+      appendLine("error", arguments);
+      return origError && origError.apply(console, arguments);
+    };
+
+    if (clearBtn) {
+      clearBtn.addEventListener("click", function () {
+        panel.innerHTML = "";
+      });
+    }
+
+    if (copyBtn && navigator.clipboard && navigator.clipboard.writeText) {
+      copyBtn.addEventListener("click", function () {
+        var text = panel.innerText || panel.textContent || "";
+        navigator.clipboard.writeText(text).catch(function (err) {
+          console.error("Failed to copy console text", err);
+        });
+      });
+    }
+  })();
 })();

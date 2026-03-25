@@ -15,6 +15,10 @@ Type=simple
 User=pock
 Group=pock
 WorkingDirectory=/home/pock/.openclaw/workspace/mission_control
+Environment=NOVA_VOSK_MODEL_PATH=/home/pock/.openclaw/workspace/mission_control/static/vosk/model-en/vosk-model-small-en-us-0.15
+Environment=NOVA_VOSK_SAMPLE_RATE=16000
+Environment=NOVA_VOSK_MIN_AUDIO_BYTES=3200
+Environment=OPENCLAW_BIN=/home/pock/.openclaw/bin/openclaw
 ExecStart=/home/pock/.openclaw/workspace/mission_control/.venv/bin/uvicorn mission_control.asgi:application --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=5

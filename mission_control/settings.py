@@ -10,7 +10,7 @@ NOVA_WS_URL = _nova_ws_env if _nova_ws_env.startswith(("ws://", "wss://")) else 
 
 SECRET_KEY = "change-this-in-prod"
 DEBUG = True
-ALLOWED_HOSTS = ["127.0.0.1","localhost","100.107.120.111","147.93.113.71","novamission.cloud"]
+ALLOWED_HOSTS = ["127.0.0.1","localhost","100.107.120.111","147.93.113.71","novamission.cloud","www.novamission.cloud"]
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -71,10 +71,26 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
-CSRF_TRUSTED_ORIGINS = ["https://novamission.cloud"]
+CSRF_TRUSTED_ORIGINS = ["https://novamission.cloud","https://www.novamission.cloud"]
 
 # Directory for Nova TTS audio files (served via nginx/static)
 NOVA_AUDIO_DIR = BASE_DIR / "static" / "nova_audio"
+NOVA_VOSK_MODEL_PATH = os.environ.get(
+    "NOVA_VOSK_MODEL_PATH",
+    str(BASE_DIR / "static" / "vosk" / "model-en" / "vosk-model-small-en-us-0.15"),
+)
+NOVA_VOSK_SAMPLE_RATE = int(os.environ.get("NOVA_VOSK_SAMPLE_RATE", "16000"))
+NOVA_VOSK_MIN_AUDIO_BYTES = int(os.environ.get("NOVA_VOSK_MIN_AUDIO_BYTES", "3200"))
+NOVA_GATEWAY_INTERNAL_TOKEN = os.environ.get("NOVA_GATEWAY_INTERNAL_TOKEN", "")
+OPENCLAW_BIN = os.environ.get("OPENCLAW_BIN", "openclaw")
+
+# Provider capability toggles mapped to OpenClaw-style capability boundaries.
+NOVA_PROVIDER_CAPABILITIES = {
+    "text_inference": True,
+    "speech_synthesis": True,
+    "media_understanding": False,
+    "web_search": False,
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

@@ -23,6 +23,9 @@ Type=simple
 User=www-data
 Group=www-data
 WorkingDirectory=REPLACE_WORKING_DIR
+Environment=NOVA_VOSK_MODEL_PATH=REPLACE_WORKING_DIR/static/vosk/model-en/vosk-model-small-en-us-0.15
+Environment=NOVA_VOSK_SAMPLE_RATE=16000
+Environment=NOVA_VOSK_MIN_AUDIO_BYTES=3200
 ExecStart=REPLACE_UVICORN mission_control.asgi:application --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=5

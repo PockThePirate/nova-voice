@@ -15,7 +15,7 @@
   const statusEl = document.getElementById(STATUS_EL_ID);
 
   if (!btn) {
-    console.log("[Wake] Button not found");
+    // Wake-word UI is optional in PTT mode; exit silently when absent.
     return;
   }
 
@@ -160,7 +160,7 @@
 
     recognition.onresult = function(event) {
       let interim = "";
-      for (let i = event.resultIndex; i \u003c event.results.length; i++) {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i];
         if (result.isFinal) {
           finalTranscript += result[0].transcript;
@@ -169,7 +169,7 @@
             setStatus("Wake word detected!");
             // Extract command after wake word
             const parts = text.split(/nova|hey nova/i);
-            if (parts[1] \u0026\u0026 parts[1].trim()) {
+            if (parts[1] && parts[1].trim()) {
               sendToNova(parts[1].trim());
             }
           }
@@ -187,7 +187,7 @@
       if (isListening) {
         // Restart on error
         setTimeout(function() {
-          if (isListening \u0026\u0026 recognition) {
+          if (isListening && recognition) {
             recognition.start();
           }
         }, 1000);
@@ -202,7 +202,7 @@
     if (!text || !text.trim()) return;
     setStatus('Sending: "' + text.substring(0, 30) + '..."');
 
-    if (window.Nova \u0026\u0026 typeof window.Nova.sendText === "function") {
+    if (window.Nova && typeof window.Nova.sendText === "function") {
       window.Nova.sendText(text.trim());
     } else {
       // Direct POST fallback
@@ -216,7 +216,7 @@
         let v = null;
         if (document.cookie) {
           const c = document.cookie.split(";");
-          for (let i = 0; i \u003c c.length; i++) {
+          for (let i = 0; i < c.length; i++) {
             const x = c[i].trim();
             if (x.indexOf(name + "=") === 0) {
               v = decodeURIComponent(x.substring(name.length + 1));
@@ -232,14 +232,14 @@
         body: fd,
         credentials: "same-origin",
       })
-        .then(r =\u003e r.json())
-        .then(d =\u003e {
+        .then(r => r.json())
+        .then(d => {
           if (d.audio_url) {
             new Audio(d.audio_url).play().catch(function(){});
             setStatus("Nova replied");
           }
         })
-        .catch(e =\u003e {
+        .catch(e => {
           console.error("[Wake] Send error:", e);
           setStatus("Failed");
         });

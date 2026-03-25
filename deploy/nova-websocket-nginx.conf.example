@@ -44,6 +44,7 @@
 #   }
 #
 # Then: sudo nginx -t && sudo systemctl reload nginx
+# Post-deploy smoke: tap-to-talk twice on dashboard; expect start_ack then stop_ack and UI reset.
 
 # =============================================================================
 # Option A: gunicorn (WSGI) for Django + separate uvicorn for nova-audio-gateway

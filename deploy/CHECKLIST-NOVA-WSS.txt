@@ -12,9 +12,12 @@ On the SERVER, verify in order:
 
 1) ASGI + FastAPI import (same venv as Django)
    cd /home/pock/.openclaw/workspace/mission_control
+   .venv/bin/pip install -r requirements.txt
    .venv/bin/python manage.py nova_check_deploy --port 8001
 
    You want: "FastAPI gateway import OK" AND "127.0.0.1:8001 accepts connections".
+   Also verify Vosk model dir exists and is readable:
+   ls -ld /home/pock/.openclaw/workspace/mission_control/static/vosk/model-en/vosk-model-small-en-us-0.15
 
 2) systemd (if used)
    sudo systemctl status uvicorn-django-nova-asgi.service
@@ -43,3 +46,20 @@ On the SERVER, verify in order:
    pip install websockets  # or use websocat
    python3 -c "import asyncio, websockets; asyncio.run(websockets.connect('ws://127.0.0.1:8001/ws/audio/nova'))"
    If this fails, fix ASGI/gateway first before nginx.
+
+6) Post-deploy PTT smoke test (Android first)
+   - Open dashboard and verify Console panel shows `[PTT_STATE]` transitions.
+   - Tap #1 on the Nova round button:
+     - Expected status: `Connecting...` then `Listening...`
+     - Expected websocket events: `start_ack`
+   - Speak a short phrase, then tap #2:
+     - Expected statuses: `Stopping recording...`, then `Transcribing...`, then `Thinking...`
+     - Expected websocket events: `stop_ack`, `transcribing_started`, `transcribing_done`, `nova_request_started`, `reply`
+     - Expected `reply` payload includes: `transcript`, `reply_text`, `audio_url`, `metrics`
+   - Confirm UI recovers to idle state:
+     - Button label returns to `Tap to speak`
+     - `recording` visual class is removed
+   - Permission checks:
+     - Browser has microphone permission allowed for `https://novamission.cloud`
+     - Service user (`pock` or `www-data`) can read Vosk model directory
+     - Site is served over HTTPS (required for `getUserMedia` on Android)
