@@ -19,13 +19,21 @@ Hands-free Nova assistant for commuting and driving, with reliable wake word, vo
 
 ## Next 3 Actions
 1. ~~Implement the "Play Summary" button on Mission Control and verify it uses Nova's voice.~~ ✅ Done — button works, generates TTS via Nova voice API
-2. Design the daily summary cron: weekdays 06:00–07:00 with work missions; weekends with programming/education/home missions.
-3. Add a new mission log section describing cron rules (weekday vs weekend) and wire the first cron job in OpenClaw.
+2. ~~Design the daily summary cron: weekdays 06:00–07:00 with work missions; weekends with programming/education/home missions.~~ ✅ Done — `mission_daily_summary.py` created with weekday/weekend logic
+3. ~~Add a new mission log section describing cron rules (weekday vs weekend) and wire the first cron job in OpenClaw.~~ ✅ Done — cron job added, runs daily at 9 AM UTC
 
 ## Completed Actions
 - [x] Wire Missions panel into Mission Control dashboard
-- [x] Add mission log download button
+- [x] Add mission log download button  
 - [x] Implement "Play Summary" button with Nova TTS
+- [x] Design daily summary cron with weekday/weekend mission selection
+- [x] Wire first OpenClaw cron job (runs daily 9 AM UTC)
+
+## Daily Summary Cron Rules
+**Weekdays (Mon-Fri) 06:00–07:00:** Focus on work missions (Nova Car Copilot, professional tasks)
+**Weekends (Sat-Sun) 09:00–10:00:** Focus on programming/education/home missions (learning, side projects, personal goals)
+
+Logic: Cron checks day of week, picks appropriate mission category, generates summary with relevant next actions.
 
 ## Decisions / Notes
 - Voice/wake-word changes are gated: Nova must not change them without explicit approval.
