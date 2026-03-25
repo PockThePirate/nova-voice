@@ -63,6 +63,16 @@ Location: `dashboard/management/commands/mission_daily_summary.py`
 - [ ] Management command implemented
 - [ ] Cron job enabled (user discretion)
 
+## Next 3 Actions
+1. Create `dashboard/management/commands/mission_daily_summary.py` management command
+2. Implement mission file scanner to parse "Next 3 Actions" from all .md files
+3. Add summary generation with TTS audio output for dashboard playback
+
+## Completed Actions
+- [x] Defined cron structure and schedule
+- [x] Created crontab template at `deploy/crontab.mission_summary`
+- [x] Documented summary output format and healthcheck integration
+
 ## Notes
 - Mark actions complete by editing mission files
 - Use `## Completed Actions` section in .md files
