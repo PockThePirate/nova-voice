@@ -18,9 +18,9 @@ Hands-free Nova assistant for commuting and driving, with reliable wake word, vo
 - Notes: Web wake-word and voice are functional but in active development. Streaming backend is stubbed and being wired in.
 
 ## Next 3 Actions
-1. ~~Implement the "Play Summary" button on Mission Control and verify it uses Nova's voice.~~ ✅ Done — button works, generates TTS via Nova voice API
-2. ~~Design the daily summary cron: weekdays 06:00–07:00 with work missions; weekends with programming/education/home missions.~~ ✅ Done — `mission_daily_summary.py` created with weekday/weekend logic
-3. ~~Add a new mission log section describing cron rules (weekday vs weekend) and wire the first cron job in OpenClaw.~~ ✅ Done — cron job added, runs daily at 9 AM UTC
+1. Create Android Nova Voice app skeleton with wake word detection (M2 milestone)
+2. Wire streaming audio backend to replace browser SpeechRecognition (M3 milestone)
+3. Add weekly mission summary with automatic healthcheck reporting (M4 milestone)
 
 ## Completed Actions
 - [x] Wire Missions panel into Mission Control dashboard
