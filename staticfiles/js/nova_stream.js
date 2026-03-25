@@ -42,19 +42,27 @@ class NovaStreamClient {
     this._captureActive = false;
     /** When true, `onConnectionLost` is not fired (user called `disconnect()`). */
     this._closingByUser = false;
-    /** @type {ReturnType<typeof setTimeout>|null} */
-    this._voicePipelineTimer = null;
-    /** After `stop`, wait for `reply` / `error` before closing the socket. */
-    this._awaitVoicePipeline = false;
+
+    // Simple client-side silence detection (for end-of-utterance). We track
+    // cumulative milliseconds below `silenceThreshold` and fire `onSilence`
+    // when it exceeds `silenceTimeoutMs`.
+    // Silence/end-of-utterance detection. We only start counting silence after
+    // we have seen speech above `speechThreshold` to avoid firing on pure
+    // background noise.
+    this.speechThreshold = typeof o.speechThreshold === "number" ? o.speechThreshold : 0.04;
+    this.silenceThreshold = typeof o.silenceThreshold === "number" ? o.silenceThreshold : 0.02;
+    this.silenceTimeoutMs = typeof o.silenceTimeoutMs === "number" ? o.silenceTimeoutMs : 2000;
+    this._silenceMs = 0;
+    this._hasSpoken = false;
 
     /** Called after WebSocket is open and `start` has been sent */
     this.onReady = null;
     /** @param {MessageEvent} event */
     this.onMessage = null;
+    /** Called when the stream has been mostly silent for silenceTimeoutMs */
+    this.onSilence = null;
     /** @param {Event} event */
     this.onConnectionLost = null;
-    /** Fires when user-initiated disconnect finishes (socket closed, including after voice pipeline). */
-    this.onUserDisconnected = null;
   }
 
   /**
@@ -101,35 +109,8 @@ class NovaStreamClient {
     };
 
     this.ws.onmessage = (event) => {
-      if (this._awaitVoicePipeline) {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === "reply" || data.type === "error") {
-            this._awaitVoicePipeline = false;
-            if (this._voicePipelineTimer) {
-              clearTimeout(this._voicePipelineTimer);
-              this._voicePipelineTimer = null;
-            }
-            if (typeof this.onMessage === "function") {
-              try {
-                this.onMessage(event);
-              } catch (e) {
-                console.error("NovaStreamClient onMessage error:", e);
-              }
-            }
-            this._completeUserDisconnect();
-            return;
-          }
-        } catch (e) {
-          /* fall through */
-        }
-      }
       if (typeof this.onMessage === "function") {
-        try {
-          this.onMessage(event);
-        } catch (e) {
-          console.error("NovaStreamClient onMessage error:", e);
-        }
+        this.onMessage(event);
       }
     };
 
@@ -138,23 +119,11 @@ class NovaStreamClient {
     };
 
     this.ws.onclose = (event) => {
-      if (this._voicePipelineTimer) {
-        clearTimeout(this._voicePipelineTimer);
-        this._voicePipelineTimer = null;
-      }
-      this._awaitVoicePipeline = false;
       this.ws = null;
       this.stopCapture();
-      const userInitiated = this._closingByUser;
+      const skipLost = this._closingByUser;
       this._closingByUser = false;
-      if (userInitiated && typeof this.onUserDisconnected === "function") {
-        try {
-          this.onUserDisconnected(event);
-        } catch (e) {
-          console.error("NovaStreamClient onUserDisconnected error:", e);
-        }
-      }
-      if (!userInitiated && typeof this.onConnectionLost === "function") {
+      if (!skipLost && typeof this.onConnectionLost === "function") {
         try {
           this.onConnectionLost(event);
         } catch (e) {
@@ -165,48 +134,17 @@ class NovaStreamClient {
   }
 
   /**
-   * Stop microphone processing, send `stop`, and close the socket (optionally after voice reply).
-   * @param {Object} [options]
-   * @param {boolean} [options.waitForVoicePipeline] If true, keep WS open until `reply`/`error` or timeout
-   * @param {number} [options.voicePipelineTimeoutMs] Max wait ms (default 120000)
+   * Stop microphone processing, send `stop`, and close the socket.
    */
-  disconnect(options) {
-    const opts = options || {};
-    const wait = opts.waitForVoicePipeline === true;
+  disconnect() {
     this._closingByUser = true;
     this.stopCapture();
-    const canSendStop = this.ws && this.ws.readyState === WebSocket.OPEN && this.sessionId;
-    if (canSendStop) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.sessionId) {
       this._sendJson({
         type: "stop",
         session_id: this.sessionId,
       });
     }
-    if (wait && canSendStop) {
-      this._awaitVoicePipeline = true;
-      const ms =
-        typeof opts.voicePipelineTimeoutMs === "number" && opts.voicePipelineTimeoutMs > 0
-          ? opts.voicePipelineTimeoutMs
-          : 120000;
-      const self = this;
-      this._voicePipelineTimer = setTimeout(function () {
-        self._awaitVoicePipeline = false;
-        self._completeUserDisconnect();
-      }, ms);
-      return;
-    }
-    this._completeUserDisconnect();
-  }
-
-  /**
-   * Close WebSocket and clear session (used after voice pipeline or immediate disconnect).
-   */
-  _completeUserDisconnect() {
-    if (this._voicePipelineTimer) {
-      clearTimeout(this._voicePipelineTimer);
-      this._voicePipelineTimer = null;
-    }
-    this._awaitVoicePipeline = false;
     if (this.ws) {
       this.ws.close();
       this.ws = null;
@@ -270,6 +208,9 @@ class NovaStreamClient {
           if (!(input instanceof Float32Array)) {
             return;
           }
+          // Silence detection and downsampling happen from the original
+          // Float32 frame so that we can both analyze and stream.
+          client._accumulateSilence(input, inputRate);
           const pcm = NovaStreamClient._downsampleToInt16(input, inputRate, client.targetSampleRate);
           if (pcm && pcm.byteLength > 0) {
             client._sendBinary(pcm.buffer);
@@ -301,6 +242,7 @@ class NovaStreamClient {
         return;
       }
       const input = evt.inputBuffer.getChannelData(0);
+      self._accumulateSilence(input, inputRate);
       const pcm = NovaStreamClient._downsampleToInt16(input, inputRate, self.targetSampleRate);
       if (pcm && pcm.byteLength > 0) {
         self._sendBinary(pcm.buffer);
@@ -385,6 +327,61 @@ class NovaStreamClient {
       if (typeof item === "string") {
         this.ws.send(item);
       }
+    }
+  }
+
+  /**
+   * Accumulate silence duration based on the current PCM frame. When the
+   * accumulated silence exceeds `silenceTimeoutMs`, fires `onSilence` once
+   * and resets the counter.
+   *
+   * @param {Float32Array} frame
+   * @param {number} inputRate
+   */
+  _accumulateSilence(frame, inputRate) {
+    if (!frame || frame.length === 0 || !inputRate || this.silenceTimeoutMs <= 0) {
+      return;
+    }
+    let maxAbs = 0;
+    for (let i = 0; i < frame.length; i++) {
+      const v = frame[i];
+      const a = v < 0 ? -v : v;
+      if (a > maxAbs) {
+        maxAbs = a;
+      }
+    }
+    const frameMs = (frame.length / inputRate) * 1000;
+
+    // If we detect clear speech above speechThreshold, mark that speech has
+    // started and reset the silence counter so we only time silence AFTER
+    // someone has actually spoken.
+    if (maxAbs >= this.speechThreshold) {
+      this._hasSpoken = true;
+      this._silenceMs = 0;
+      return;
+    }
+
+    // Before speech has been detected, ignore silence — this avoids spurious
+    // end-of-utterance triggers on background noise.
+    if (!this._hasSpoken) {
+      return;
+    }
+
+    if (maxAbs < this.silenceThreshold) {
+      this._silenceMs += frameMs;
+      if (this._silenceMs >= this.silenceTimeoutMs) {
+        this._silenceMs = 0;
+        this._hasSpoken = false;
+        if (typeof this.onSilence === "function") {
+          try {
+            this.onSilence();
+          } catch (e) {
+            console.error("NovaStreamClient onSilence error", e);
+          }
+        }
+      }
+    } else {
+      this._silenceMs = 0;
     }
   }
 

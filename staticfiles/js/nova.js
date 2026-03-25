@@ -12,7 +12,7 @@
 (function () {
   "use strict";
 
-  const MIC_LABEL_IDLE = "🎙 Push to talk";
+  const MIC_LABEL_IDLE = "🎙 Wake Nova";
   const MIC_LABEL_ACTIVE = "⏹ Stop";
 
   const form = document.getElementById("nova-voice-form");
@@ -69,6 +69,40 @@
     form.querySelector("[data-nova-stream-stop]") || document.getElementById("nova-stream-stop");
   const micToggleBtn = document.getElementById("nova-mic-btn");
   const useMicToggle = micToggleBtn && micToggleBtn.hasAttribute("data-nova-mic-toggle");
+
+  // Wake-listening client (front-end only). Uses ScriptProcessorNode and can
+  // be wired to a client-side wake engine (e.g. Vosk WASM) via NovaWakeEngine.
+  let wakeClient = null;
+  if (typeof window.NovaWakeClient === "function") {
+    wakeClient = new window.NovaWakeClient({
+      onWake: function () {
+        // When wake word fires, start streaming if not already active.
+        if (!streamClient) {
+          handleStartClick();
+        }
+      },
+    });
+  }
+
+  // Initialize Vosk wake engine if available and wire it into wakeClient
+  if (window.NovaWakeEngine && typeof window.NovaWakeEngine.init === "function") {
+    window.NovaWakeEngine
+      .init({ debug: false })
+      .then(function () {
+        if (typeof window.NovaWakeEngine.setOnWake === "function" && wakeClient) {
+          window.NovaWakeEngine.setOnWake(function () {
+            if (wakeClient && typeof wakeClient.onWake === "function") {
+              // Delegate to the same handler NovaWakeClient uses when it
+              // detects wake locally (start streaming, etc.).
+              wakeClient.onWake();
+            }
+          });
+        }
+      })
+      .catch(function (err) {
+        console.error("NovaWakeEngine init failed:", err);
+      });
+  }
 
   /**
    * Whether WebSocket streaming is available right now (lazy; scripts may load in any order).
@@ -135,41 +169,32 @@
     let voiceWsOpened = false;
     try {
       streamClient = new window.NovaStreamClient(wsUrl ? { wsUrl: wsUrl } : { path: wsPath });
-      streamClient.onUserDisconnected = function () {
-        streamClient = null;
-        setUiStreaming(false);
-      };
       streamClient.onConnectionLost = function (ev) {
         streamClient = null;
         setUiStreaming(false);
         if (!voiceWsOpened) {
           setStatus(
             "Voice stream unavailable: use combined ASGI (uvicorn mission_control.asgi:application + nginx Upgrade on /) " +
-              "or proxy /ws/audio/nova to a gateway. See deploy/nova-websocket-nginx.conf.example (Option B). Typed Send still works. " +
-              "DevTools: Network → WS → Preserve log → Push to talk."
+              "or proxy /ws/audio/nova to a gateway. See deploy/nova-websocket-nginx.conf.example (Option B). Typed Send still works."
           );
         } else {
           setStatus("Disconnected.");
         }
         voiceWsOpened = false;
       };
+      // When the user stops speaking for ~2 seconds, treat it as end of
+      // utterance and stop the stream. This will transition the status to
+      // "Query sent…" via handleStopClick().
+      streamClient.onSilence = function () {
+        handleStopClick();
+      };
       streamClient.onMessage = function (event) {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "status" && data.state === "processing") {
-            setStatus("Processing…");
-          } else if (data.type === "status" && data.state === "listening") {
+          if (data.type === "status" && data.state === "listening") {
             setStatus("Listening…");
           } else if (data.type === "reply" && data.reply_text) {
             setStatus(data.reply_text);
-            const audioUrl = data.audio_url;
-            if (audioUrl) {
-              const player = new Audio(audioUrl);
-              player.play().catch(function (playErr) {
-                console.error("Nova WS audio play error:", playErr);
-                setStatus(data.reply_text + " (audio playback blocked)");
-              });
-            }
           } else if (data.type === "error" && data.message) {
             setStatus("Error: " + data.message);
           }
@@ -199,15 +224,44 @@
   }
 
   function handleStopClick() {
-    if (!streamClient) {
-      return;
+    if (streamClient) {
+      streamClient.disconnect();
+      streamClient = null;
     }
-    setStatus("Processing…");
-    streamClient.disconnect({ waitForVoicePipeline: true, voicePipelineTimeoutMs: 120000 });
+    setUiStreaming(false);
+    // User has finished speaking; indicate that the query is on its way
+    // to Nova before a reply is available.
+    setStatus("Query sent…");
   }
 
   function handleMicToggleClick(e) {
     e.preventDefault();
+
+    // Wake mode: mic button controls continuous wake listening; actual
+    // conversation streaming starts when the wake client fires.
+    if (wakeClient) {
+      if (wakeClient.isListening()) {
+        // Stop wake listening and any active stream.
+        wakeClient.stop();
+        if (streamClient) {
+          handleStopClick();
+        } else {
+          setUiStreaming(false);
+          setStatus("");
+        }
+      } else {
+        // Start wake listening; wakeClient.onWake will start streaming.
+        wakeClient.start();
+        if (useMicToggle && micToggleBtn) {
+          micToggleBtn.disabled = false;
+          micToggleBtn.textContent = MIC_LABEL_ACTIVE;
+        }
+        setStatus("Listening for wake word…");
+      }
+      return;
+    }
+
+    // Fallback: original push-to-talk behavior if wakeClient is unavailable.
     if (streamClient) {
       handleStopClick();
     } else {
@@ -243,6 +297,7 @@
       }
       const url = form.getAttribute("action") || window.location.pathname;
       const fd = new FormData(form);
+      textInput.value = "";
       setStatus("Sending…");
       postToUrl(url, fd)
         .then(function (resp) {
@@ -279,6 +334,36 @@
         });
     });
   }
+
+  // Expose sendToNova globally for other scripts (e.g., mission_focus.js)
+  window.Nova = window.Nova || {};
+  window.Nova.sendText = function (text) {
+    if (!text || !text.trim()) return;
+    const url = form.getAttribute("action") || "/api/nova/voice/";
+    const fd = new FormData();
+    fd.append("text", text.trim());
+    const token = getCookie("csrftoken");
+    fetch(url, {
+      method: "POST",
+      headers: token ? { "X-CSRFToken": token } : {},
+      body: fd,
+      credentials: "same-origin",
+    })
+      .then(function (resp) {
+        return resp.json().catch(function () {
+          return { error: "Invalid response" };
+        });
+      })
+      .then(function (data) {
+        if (data && data.audio_url) {
+          const player = new Audio(data.audio_url);
+          player.play().catch(function () {});
+        }
+      })
+      .catch(function (err) {
+        console.error("Nova.sendText error:", err);
+      });
+  };
 
   window.addEventListener("pagehide", teardownStream);
   setUiStreaming(false);

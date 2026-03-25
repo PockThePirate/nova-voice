@@ -118,9 +118,9 @@
       {% csrf_token %}
       <input type="text" name="text" placeholder="Type to talk to Nova" class="nova-input" />
       <button type="submit" class="qa-button qa-button-primary">Send</button>
-      <button type="button" class="qa-button qa-button-secondary" id="nova-mic-btn" data-nova-mic-toggle>🎙 Wake Nova</button>
-      <div id="nova-mic-status" class="nova-mic-status" aria-live="polite"></div>
-      <p class="nova-mic-hint">Debug voice: DevTools → Network → <strong>WS</strong> → Preserve log → click Wake Nova. URL: <code id="nova-ws-url-hint"></code></p>
+      <button type="button" class="ptt-button" id="nova-ptt-btn">🎙<br>Nova</button>
+      <div id="nova-ptt-status" class="nova-mic-status" aria-live="polite">Hold to speak</div>
+      <p class="nova-mic-hint">Hold the round button to speak. Release to send.</p>
     </form>
   </div>
   <ul class="list">
@@ -184,7 +184,10 @@
   </div>
 </div>
 
+<script src="{% static 'js/vosk.js' %}" defer></script>
 <script src="{% static 'js/nova_stream.js' %}" defer></script>
+<script src="{% static 'js/nova_wake_vosk.js' %}" defer></script>
+<script src="{% static 'js/nova_wake.js' %}" defer></script>
 <script src="{% static 'js/nova.js' %}" defer></script>
 <script src="{% static 'js/mission_focus.js' %}" defer></script>
 <script defer src="{% static 'js/nova_ws_hint.js' %}"></script>

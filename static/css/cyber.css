@@ -225,6 +225,52 @@ body {
   background: var(--accent-soft);
 }
 
+/* Push-to-talk round button - twice the size of normal buttons */
+.ptt-button {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.2;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 8px rgba(62,245,255,0.3);
+}
+
+.ptt-button:hover {
+  background: var(--accent-soft);
+  box-shadow: 0 0 16px rgba(62,245,255,0.5);
+}
+
+.ptt-button.recording {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 24px rgba(62,245,255,0.8);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 24px rgba(62,245,255,0.8); }
+  50% { box-shadow: 0 0 36px rgba(62,245,255,1); }
+  100% { box-shadow: 0 0 24px rgba(62,245,255,0.8); }
+}
+
+.ptt-button:disabled {
+  border-color: var(--muted);
+  color: var(--muted);
+  cursor: not-allowed;
+  box-shadow: none;
+  animation: none;
+}
+
 /* Timeline */
 .timeline-panel {
   margin-top: 10px;

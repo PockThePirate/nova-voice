@@ -43,10 +43,24 @@ class NovaStreamClient {
     /** When true, `onConnectionLost` is not fired (user called `disconnect()`). */
     this._closingByUser = false;
 
+    // Simple client-side silence detection (for end-of-utterance). We track
+    // cumulative milliseconds below `silenceThreshold` and fire `onSilence`
+    // when it exceeds `silenceTimeoutMs`.
+    // Silence/end-of-utterance detection. We only start counting silence after
+    // we have seen speech above `speechThreshold` to avoid firing on pure
+    // background noise.
+    this.speechThreshold = typeof o.speechThreshold === "number" ? o.speechThreshold : 0.04;
+    this.silenceThreshold = typeof o.silenceThreshold === "number" ? o.silenceThreshold : 0.02;
+    this.silenceTimeoutMs = typeof o.silenceTimeoutMs === "number" ? o.silenceTimeoutMs : 2000;
+    this._silenceMs = 0;
+    this._hasSpoken = false;
+
     /** Called after WebSocket is open and `start` has been sent */
     this.onReady = null;
     /** @param {MessageEvent} event */
     this.onMessage = null;
+    /** Called when the stream has been mostly silent for silenceTimeoutMs */
+    this.onSilence = null;
     /** @param {Event} event */
     this.onConnectionLost = null;
   }
@@ -194,6 +208,9 @@ class NovaStreamClient {
           if (!(input instanceof Float32Array)) {
             return;
           }
+          // Silence detection and downsampling happen from the original
+          // Float32 frame so that we can both analyze and stream.
+          client._accumulateSilence(input, inputRate);
           const pcm = NovaStreamClient._downsampleToInt16(input, inputRate, client.targetSampleRate);
           if (pcm && pcm.byteLength > 0) {
             client._sendBinary(pcm.buffer);
@@ -225,6 +242,7 @@ class NovaStreamClient {
         return;
       }
       const input = evt.inputBuffer.getChannelData(0);
+      self._accumulateSilence(input, inputRate);
       const pcm = NovaStreamClient._downsampleToInt16(input, inputRate, self.targetSampleRate);
       if (pcm && pcm.byteLength > 0) {
         self._sendBinary(pcm.buffer);
@@ -309,6 +327,61 @@ class NovaStreamClient {
       if (typeof item === "string") {
         this.ws.send(item);
       }
+    }
+  }
+
+  /**
+   * Accumulate silence duration based on the current PCM frame. When the
+   * accumulated silence exceeds `silenceTimeoutMs`, fires `onSilence` once
+   * and resets the counter.
+   *
+   * @param {Float32Array} frame
+   * @param {number} inputRate
+   */
+  _accumulateSilence(frame, inputRate) {
+    if (!frame || frame.length === 0 || !inputRate || this.silenceTimeoutMs <= 0) {
+      return;
+    }
+    let maxAbs = 0;
+    for (let i = 0; i < frame.length; i++) {
+      const v = frame[i];
+      const a = v < 0 ? -v : v;
+      if (a > maxAbs) {
+        maxAbs = a;
+      }
+    }
+    const frameMs = (frame.length / inputRate) * 1000;
+
+    // If we detect clear speech above speechThreshold, mark that speech has
+    // started and reset the silence counter so we only time silence AFTER
+    // someone has actually spoken.
+    if (maxAbs >= this.speechThreshold) {
+      this._hasSpoken = true;
+      this._silenceMs = 0;
+      return;
+    }
+
+    // Before speech has been detected, ignore silence — this avoids spurious
+    // end-of-utterance triggers on background noise.
+    if (!this._hasSpoken) {
+      return;
+    }
+
+    if (maxAbs < this.silenceThreshold) {
+      this._silenceMs += frameMs;
+      if (this._silenceMs >= this.silenceTimeoutMs) {
+        this._silenceMs = 0;
+        this._hasSpoken = false;
+        if (typeof this.onSilence === "function") {
+          try {
+            this.onSilence();
+          } catch (e) {
+            console.error("NovaStreamClient onSilence error", e);
+          }
+        }
+      }
+    } else {
+      this._silenceMs = 0;
     }
   }
 
