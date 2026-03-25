@@ -48,16 +48,29 @@ def dashboard_view(request):
                 lines = f.readlines()
             in_actions = False
             for line in lines:
-                if line.strip().lower().startswith("## next 3 actions"):
+                stripped = line.strip()
+                if stripped.lower().startswith("## next 3 actions"):
                     in_actions = True
                     continue
                 if in_actions:
-                    if line.strip().startswith("## "):
+                    if stripped.startswith("## "):
                         break
-                    if line.strip().startswith("-") or line.strip().startswith("*") or any(line.strip().startswith(f"{n}.") for n in range(1, 10)):
-                        text = line.strip().lstrip("-*0123456789. ")
-                        if text:
-                            focus_actions.append(text)
+                    if not stripped:
+                        continue
+                    # Match: "- text", "* text", "1. text", "2. text", etc.
+                    if stripped.startswith("-"):
+                        text = stripped[1:].strip()
+                    elif stripped.startswith("*"):
+                        text = stripped[1:].strip()
+                    else:
+                        # Check for numbered items like "1.", "2.", etc.
+                        parts = stripped.split(".", 1)
+                        if len(parts) == 2 and parts[0].strip().isdigit():
+                            text = parts[1].strip()
+                        else:
+                            text = stripped
+                    if text:
+                        focus_actions.append(text)
             if focus_mission and focus_actions:
                 parts = [
                     f"Today's focus mission is {focus_mission['title']}.",
@@ -65,7 +78,13 @@ def dashboard_view(request):
                 ]
                 for idx, a in enumerate(focus_actions, start=1):
                     parts.append(f"{idx}. {a}.")
-                focus_summary_text = " " .join(parts)
+                # Build a prompt for the Nova agent to craft an insightful summary
+                actions_list = "; ".join([f"{idx}. {a}" for idx, a in enumerate(focus_actions, start=1)])
+                focus_summary_text = (
+                    f"Today's focus mission is {focus_mission['title']}. "
+                    f"Here are the next actions: {actions_list}. "
+                    f"Please provide a brief, insightful overview of these priorities for today."
+                )
         except Exception:
             focus_actions = []
             focus_summary_text = ""
