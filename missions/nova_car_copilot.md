@@ -18,9 +18,14 @@ Hands-free Nova assistant for commuting and driving, with reliable wake word, vo
 - Notes: Web wake-word and voice are functional but in active development. Streaming backend is stubbed and being wired in.
 
 ## Next 3 Actions
-1. Wire Missions panel into Mission Control dashboard (list missions + view this file).
-2. Add mission log download button to Mission Control.
-3. Define a daily mission summary cron structure (even before we enable it).
+1. ~~Implement the "Play Summary" button on Mission Control and verify it uses Nova's voice.~~ ✅ Done — button works, generates TTS via Nova voice API
+2. Design the daily summary cron: weekdays 06:00–07:00 with work missions; weekends with programming/education/home missions.
+3. Add a new mission log section describing cron rules (weekday vs weekend) and wire the first cron job in OpenClaw.
+
+## Completed Actions
+- [x] Wire Missions panel into Mission Control dashboard
+- [x] Add mission log download button
+- [x] Implement "Play Summary" button with Nova TTS
 
 ## Decisions / Notes
 - Voice/wake-word changes are gated: Nova must not change them without explicit approval.
