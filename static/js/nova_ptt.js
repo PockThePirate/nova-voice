@@ -2,87 +2,106 @@
   "use strict";
 
   /**
-   * Push-to-talk voice input for Nova.
+   * Toggle voice input for Nova.
    * 
-   * Hold the round button to record audio.
-   * Release to stop recording and transcribe.
-   * 
-   * Uses Web Speech API for transcription (browser built-in).
-   * Falls back to no transcription if not available.
+   * Click to start recording, click again to stop and transcribe.
+   * Works on mobile and desktop.
    */
 
   const PTT_BUTTON_ID = "nova-ptt-btn";
   const STATUS_EL_ID = "nova-ptt-status";
 
   const btn = document.getElementById(PTT_BUTTON_ID);
+  const statusEl = document.getElementById(STATUS_EL_ID);
+
   if (!btn) {
-    console.log("[PTT] Button not found, skipping init");
+    console.log("[Voice] Button not found");
     return;
   }
 
-  // Check for Web Speech API support
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   const hasSpeechAPI = !!SpeechRecognition;
 
   let recognition = null;
   let isRecording = false;
+  let transcript = "";
 
   function setStatus(text) {
-    const el = document.getElementById(STATUS_EL_ID);
-    if (el) {
-      el.textContent = text;
-    }
+    if (statusEl) statusEl.textContent = text;
   }
 
   function startRecording() {
-    if (isRecording) return;
-    
-    isRecording = true;
-    btn.classList.add("recording");
-    btn.innerHTML = "Listening<br>...";
-    setStatus("Speak now...");
-
     if (!hasSpeechAPI) {
       setStatus("Speech API not available");
       return;
     }
 
+    transcript = "";
+    
     try {
       recognition = new SpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
+      recognition.continuous = true;
+      recognition.interimResults = true;
       recognition.lang = "en-US";
 
-      recognition.onresult = function (event) {
-        const transcript = event.results[0][0].transcript;
-        setStatus('Heard: "' + transcript + '"');
-        sendToNova(transcript);
+      recognition.onstart = function() {
+        isRecording = true;
+        btn.classList.add("recording");
+        btn.innerHTML = "⏹\u003cbr\u003eStop";
+        setStatus("Listening... speak now");
       };
 
-      recognition.onerror = function (event) {
-        console.error("[PTT] Speech error:", event.error);
-        setStatus("Error: " + event.error);
+      recognition.onresult = function(event) {
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            finalTranscript += result[0].transcript;
+          } else {
+            interimTranscript += result[0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          transcript += finalTranscript;
+        }
+
+        setStatus('Heard: "' + (transcript || interimTranscript) + '"');
+      };
+
+      recognition.onerror = function(event) {
+        console.error("[Voice] Error:", event.error);
+        if (event.error !== "aborted") {
+          setStatus("Error: " + event.error);
+        }
         stopRecording();
       };
 
-      recognition.onend = function () {
-        stopRecording();
+      recognition.onend = function() {
+        // Only auto-restart if we're still in recording mode (user hasn't clicked stop)
+        if (isRecording) {
+          try {
+            recognition.start();
+          } catch (e) {
+            stopRecording();
+          }
+        }
       };
 
       recognition.start();
     } catch (err) {
-      console.error("[PTT] Failed:", err);
+      console.error("[Voice] Start failed:", err);
       setStatus("Mic access denied");
       stopRecording();
     }
   }
 
   function stopRecording() {
-    if (!isRecording) return;
-    
     isRecording = false;
     btn.classList.remove("recording");
-    btn.innerHTML = "Nova<br>🎙";
+    btn.innerHTML = "🎙\u003cbr\u003eNova";
 
     if (recognition) {
       try {
@@ -91,42 +110,48 @@
       recognition = null;
     }
 
-    setStatus("Processing...");
+    // Send the transcript
+    if (transcript.trim()) {
+      sendToNova(transcript.trim());
+    } else {
+      setStatus("No speech detected");
+    }
+  }
+
+  function toggleRecording() {
+    if (isRecording) {
+      stopRecording();
+    } else {
+      startRecording();
+    }
   }
 
   function sendToNova(text) {
-    if (!text || !text.trim()) {
-      setStatus("No speech detected");
-      return;
-    }
+    setStatus('Sending: "' + text.substring(0, 40) + '..."');
 
-    setStatus('Sending: "' + text.trim().substring(0, 30) + '..."');
-
-    // Use existing Nova.sendText if available
     if (window.Nova && typeof window.Nova.sendText === "function") {
-      window.Nova.sendText(text.trim());
+      window.Nova.sendText(text);
       setStatus("Sent to Nova");
     } else {
-      // Fallback: POST to voice API
+      // Fallback POST
       const form = document.getElementById("nova-voice-form");
       const url = form ? form.getAttribute("action") : "/api/nova/voice/";
       
       const fd = new FormData();
-      fd.append("text", text.trim());
+      fd.append("text", text);
       
       function getCookie(name) {
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== "") {
-          const cookies = document.cookie.split(";");
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === name + "=") {
-              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
+        let v = null;
+        if (document.cookie) {
+          const c = document.cookie.split(";");
+          for (let i = 0; i < c.length; i++) {
+            const x = c[i].trim();
+            if (x.indexOf(name + "=") === 0) {
+              v = decodeURIComponent(x.substring(name.length + 1));
             }
           }
         }
-        return cookieValue;
+        return v;
       }
 
       fetch(url, {
@@ -135,47 +160,32 @@
         body: fd,
         credentials: "same-origin",
       })
-        .then(function (resp) { return resp.json(); })
-        .then(function (data) {
-          if (data.audio_url) {
-            new Audio(data.audio_url).play().catch(function(){});
+        .then(r => r.json())
+        .then(d => {
+          if (d.audio_url) {
+            new Audio(d.audio_url).play().catch(function(){});
             setStatus("Nova replied");
           } else {
-            setStatus("No response");
+            setStatus("Sent");
           }
         })
-        .catch(function (err) {
-          console.error("[PTT] Send error:", err);
-          setStatus("Failed");
+        .catch(e => {
+          console.error("[Voice] Send error:", e);
+          setStatus("Failed to send");
         });
     }
   }
 
-  // Mouse events
-  btn.addEventListener("mousedown", function (e) {
+  // Toggle on click
+  btn.addEventListener("click", function(e) {
     e.preventDefault();
-    startRecording();
+    toggleRecording();
   });
 
-  btn.addEventListener("mouseup", function (e) {
+  // Touch support for mobile
+  btn.addEventListener("touchstart", function(e) {
     e.preventDefault();
-    stopRecording();
   });
 
-  btn.addEventListener("mouseleave", function (e) {
-    if (isRecording) stopRecording();
-  });
-
-  // Touch events for mobile
-  btn.addEventListener("touchstart", function (e) {
-    e.preventDefault();
-    startRecording();
-  });
-
-  btn.addEventListener("touchend", function (e) {
-    e.preventDefault();
-    stopRecording();
-  });
-
-  console.log("[PTT] Push-to-talk ready");
+  console.log("[Voice] Toggle mode initialized");
 })();
