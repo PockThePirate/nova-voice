@@ -40,6 +40,7 @@ class NovaStreamClient {
     /** @type {string[]} Pending JSON control messages before the socket is open */
     this.queue = [];
     this._captureActive = false;
+    this._stopSent = false;
     /** When true, `onConnectionLost` is not fired (user called `disconnect()`). */
     this._closingByUser = false;
 
@@ -93,6 +94,7 @@ class NovaStreamClient {
 
     this.ws.onopen = () => {
       window.NOVA_STREAM_FAILED = false;
+      this._stopSent = false;
       this._flushControlQueue();
       this._sendJson({
         type: "start",
@@ -134,17 +136,41 @@ class NovaStreamClient {
   }
 
   /**
-   * Stop microphone processing, send `stop`, and close the socket.
+   * Stop microphone processing, send `stop`, and keep socket open for server reply.
    */
-  disconnect() {
-    this._closingByUser = true;
+  requestStop() {
     this.stopCapture();
-    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.sessionId) {
+    if (this.ws && this.ws.readyState === WebSocket.OPEN && this.sessionId && !this._stopSent) {
       this._sendJson({
         type: "stop",
         session_id: this.sessionId,
       });
+      this._stopSent = true;
     }
+  }
+
+  /**
+   * Stop microphone processing, send `stop`, and close the socket immediately.
+   */
+  disconnect() {
+    this._closingByUser = true;
+    this.requestStop();
+    if (this.ws) {
+      this.ws.close();
+      this.ws = null;
+    } else {
+      this._closingByUser = false;
+    }
+    this.sessionId = null;
+    this.queue.length = 0;
+  }
+
+  /**
+   * Close the WebSocket without sending additional control messages.
+   */
+  closeSocket() {
+    this._closingByUser = true;
+    this.stopCapture();
     if (this.ws) {
       this.ws.close();
       this.ws = null;

@@ -62,17 +62,32 @@ class EdgeTTSProvider(TTSProvider):
         Example:
             result = provider.synthesize("Hello", Path("/tmp/hello.mp3"))
         """
-        try:
-            asyncio.run(self._synthesize_async(text, output_path))
-            return TTSResult(ok=True, file_path=output_path, error=None)
-        except RuntimeError:
+        import threading
+        
+        result_container = {"exception": None, "done": False}
+        
+        def run_async():
             try:
-                loop = asyncio.get_event_loop()
-                loop.run_until_complete(self._synthesize_async(text, output_path))
-                return TTSResult(ok=True, file_path=output_path, error=None)
-            except Exception:
-                self.logger.exception("Edge TTS synth failed (runtime loop fallback)")
-                return TTSResult(ok=False, file_path=None, error="tts_failed")
-        except Exception:
-            self.logger.exception("Edge TTS synth failed")
+                # Create a new event loop for this thread
+                new_loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(new_loop)
+                try:
+                    new_loop.run_until_complete(self._synthesize_async(text, output_path))
+                    result_container["done"] = True
+                finally:
+                    new_loop.close()
+            except Exception as e:
+                result_container["exception"] = e
+        
+        # Run TTS in a separate thread to avoid event loop conflicts
+        thread = threading.Thread(target=run_async)
+        thread.start()
+        thread.join()
+        
+        if result_container["exception"]:
+            self.logger.exception("Edge TTS synth failed", exc_info=result_container["exception"])
+            return TTSResult(ok=False, file_path=None, error="tts_failed")
+        elif result_container["done"]:
+            return TTSResult(ok=True, file_path=output_path, error=None)
+        else:
             return TTSResult(ok=False, file_path=None, error="tts_failed")

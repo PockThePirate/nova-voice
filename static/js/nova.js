@@ -202,12 +202,10 @@
         }
         voiceWsOpened = false;
       };
-      // When the user stops speaking for ~2 seconds, treat it as end of
-      // utterance and stop the stream. This will transition the status to
-      // "Query sent…" via handleStopClick().
+      // Disable auto-stop on silence - user must manually tap to stop
+      // This ensures we capture enough audio for transcription
       streamClient.onSilence = function () {
-        console.info("[PTT] silence detected; stopping");
-        handleStopClick();
+        // Silently ignore - wait for manual stop
       };
       streamClient.onMessage = function (event) {
         try {

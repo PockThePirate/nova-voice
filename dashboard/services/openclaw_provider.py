@@ -32,7 +32,14 @@ class OpenClawCLIProvider(AgentProvider):
         self.timeout_seconds = timeout_seconds
         self.logger = logging.getLogger("nova")
         env_bin = os.environ.get("OPENCLAW_BIN", "").strip()
-        self.openclaw_bin = env_bin or shutil.which("openclaw") or "openclaw"
+        # Fallback chain: env var → shutil.which → hardcoded brew path → bare command
+        self.openclaw_bin = (
+            env_bin
+            or shutil.which("openclaw")
+            or "/home/linuxbrew/.linuxbrew/bin/openclaw"
+            or "openclaw"
+        )
+        self.logger.info(f"OpenClawCLIProvider initialized with bin={self.openclaw_bin}")
 
     def ask(self, message: str) -> AgentReply:
         """
@@ -49,7 +56,13 @@ class OpenClawCLIProvider(AgentProvider):
         """
         if not message.strip():
             return AgentReply(text="", ok=False, error="empty_message")
+        
         try:
+            # Verify binary exists before running
+            if not os.path.isfile(self.openclaw_bin):
+                self.logger.error(f"OpenClaw binary not found at {self.openclaw_bin}")
+                return AgentReply(text="", ok=False, error=f"openclaw_not_found:{self.openclaw_bin}")
+            
             proc = subprocess.run(
                 [
                     self.openclaw_bin,
@@ -58,7 +71,6 @@ class OpenClawCLIProvider(AgentProvider):
                     self.agent_name,
                     "--message",
                     message,
-                    "--no-color",
                 ],
                 capture_output=True,
                 text=True,
@@ -67,9 +79,9 @@ class OpenClawCLIProvider(AgentProvider):
             if proc.returncode != 0:
                 self.logger.error(
                     "OpenClaw CLI failed",
-                    extra={"stdout": proc.stdout, "stderr": proc.stderr, "returncode": proc.returncode},
+                    extra={"stdout": proc.stdout[:500] if proc.stdout else None, "stderr": proc.stderr[:500] if proc.stderr else None, "returncode": proc.returncode, "openclaw_bin": self.openclaw_bin},
                 )
-                return AgentReply(text=message, ok=False, error="openclaw_cli_failed")
+                return AgentReply(text=message, ok=False, error=f"openclaw_cli_failed:returncode={proc.returncode}:stderr={proc.stderr[:200] if proc.stderr else 'none'}")
 
             lines = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
             # Filter out obvious echo/noise lines so we do not mirror user input as assistant output.
@@ -91,6 +103,6 @@ class OpenClawCLIProvider(AgentProvider):
                 )
                 return AgentReply(text="", ok=False, error="openclaw_empty_reply")
             return AgentReply(text=candidates[-1], ok=True, error=None)
-        except Exception:
-            self.logger.exception("OpenClaw CLI exception", extra={"openclaw_bin": self.openclaw_bin})
-            return AgentReply(text="", ok=False, error=f"openclaw_cli_exception:{self.openclaw_bin}")
+        except Exception as e:
+            self.logger.exception("OpenClaw CLI exception", extra={"openclaw_bin": self.openclaw_bin, "error": str(e)})
+            return AgentReply(text="", ok=False, error=f"openclaw_cli_exception:{self.openclaw_bin}:{type(e).__name__}:{str(e)[:50]}")

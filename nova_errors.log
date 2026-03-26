@@ -1,0 +1,1199 @@
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI exception
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/openclaw_provider.py", line 53, in ask
+    proc = subprocess.run(
+        [
+    ...<10 lines>...
+        timeout=self.timeout_seconds,
+    )
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 554, in run
+    with Popen(*popenargs, **kwargs) as process:
+         ~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1038, in __init__
+    self._execute_child(args, executable, preexec_fn, close_fds,
+    ~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                        pass_fds, cwd, env,
+                        ^^^^^^^^^^^^^^^^^^^
+    ...<5 lines>...
+                        gid, gids, uid, umask,
+                        ^^^^^^^^^^^^^^^^^^^^^^
+                        start_new_session, process_group)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/subprocess.py", line 1989, in _execute_child
+    raise child_exception_type(errno_num, err_msg, err_filename)
+FileNotFoundError: [Errno 2] No such file or directory: 'openclaw'
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+OpenClaw CLI failed
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+    raise
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+    raise
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+    raise
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+    raise
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+OpenClaw CLI failed
+OpenClaw CLI failed
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Edge TTS synth failed (runtime loop fallback)
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 66, in synthesize
+    asyncio.run(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/linuxbrew/.linuxbrew/opt/python@3.14/lib/python3.14/asyncio/runners.py", line 200, in run
+    raise RuntimeError(
+        "asyncio.run() cannot be called from a running event loop")
+RuntimeError: asyncio.run() cannot be called from a running event loop
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/services/tts_provider.py", line 71, in synthesize
+    loop.run_until_complete(self._synthesize_async(text, output_path))
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "uvloop/loop.pyx", line 1512, in uvloop.loop.Loop.run_until_complete
+  File "uvloop/loop.pyx", line 1505, in uvloop.loop.Loop.run_until_complete
+    self.run_forever()
+  File "uvloop/loop.pyx", line 1379, in uvloop.loop.Loop.run_forever
+    self._run(mode)
+  File "uvloop/loop.pyx", line 520, in uvloop.loop.Loop._run
+    raise RuntimeError('this event loop is already running.')
+RuntimeError: this event loop is already running.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+OpenClaw CLI failed
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
+Failed to persist Event
+Traceback (most recent call last):
+  File "/home/pock/.openclaw/workspace/mission_control/dashboard/views.py", line 38, in _record_event
+    Event.objects.create(level=level, source=source, message=message)
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 669, in create
+    obj.save(force_insert=True, using=self.db)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 874, in save
+    self.save_base(
+    ~~~~~~~~~~~~~~^
+        using=using,
+        ^^^^^^^^^^^^
+    ...<2 lines>...
+        update_fields=update_fields,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 966, in save_base
+    updated = self._save_table(
+        raw,
+    ...<4 lines>...
+        update_fields,
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1169, in _save_table
+    results = self._do_insert(
+        cls._base_manager, using, insert_fields, returning_fields, raw
+    )
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/base.py", line 1220, in _do_insert
+    return manager._insert(
+           ~~~~~~~~~~~~~~~^
+        [self],
+        ^^^^^^^
+    ...<3 lines>...
+        raw=raw,
+        ^^^^^^^^
+    )
+    ^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/manager.py", line 87, in manager_method
+    return getattr(self.get_queryset(), name)(*args, **kwargs)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/query.py", line 1918, in _insert
+    return query.get_compiler(using=using).execute_sql(returning_fields)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/db/models/sql/compiler.py", line 1923, in execute_sql
+    with self.connection.cursor() as cursor:
+         ~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/home/pock/.openclaw/workspace/mission_control/.venv/lib/python3.14/site-packages/django/utils/asyncio.py", line 24, in inner
+    raise SynchronousOnlyOperation(message)
+django.core.exceptions.SynchronousOnlyOperation: You cannot call this from an async context - use a thread or sync_to_async.
