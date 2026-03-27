@@ -428,3 +428,11 @@ body {
   font-size: 0.68rem;
   word-break: break-all;
 }
+
+.nova-play-reply-btn {
+  margin-top: 8px;
+}
+
+.nova-play-reply-hidden {
+  display: none !important;
+}

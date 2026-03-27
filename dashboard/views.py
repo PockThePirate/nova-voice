@@ -6,6 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 import logging
+import re
 from pathlib import Path
 
 from .models import Agent, NodeStatus, Mission, Event
@@ -17,6 +18,58 @@ from .services import (
 )
 
 logger = logging.getLogger("nova")
+
+
+_NOVA_AUDIO_FILENAME = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.mp3$"
+)
+
+
+def _nova_audio_output_url_prefix() -> str:
+    """
+    Public URL prefix for Nova TTS MP3s (see ``settings.NOVA_AUDIO_URL_PREFIX``).
+
+    Args:
+        None
+
+    Returns:
+        str: Path prefix ending with a slash, e.g. ``/api/nova/audio/``.
+
+    Example:
+        orchestrator = VoiceOrchestrator(..., output_url_prefix=_nova_audio_output_url_prefix())
+    """
+    return getattr(settings, "NOVA_AUDIO_URL_PREFIX", "/api/nova/audio/")
+
+
+@login_required
+def nova_audio_file(request, filename: str):
+    """
+    Stream a generated Nova TTS MP3 from ``NOVA_AUDIO_DIR`` (same-origin, session auth).
+
+    Args:
+        request: HttpRequest (must be authenticated).
+        filename: UUID-based ``.mp3`` name only.
+
+    Returns:
+        FileResponse: ``audio/mpeg`` stream or HTTP 404.
+
+    Example:
+        GET /api/nova/audio/550e8400-e29b-41d4-a716-446655440000.mp3
+    """
+    if not _NOVA_AUDIO_FILENAME.match(filename):
+        raise Http404("Invalid audio file name")
+    base = Path(getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio")).resolve()
+    target = (base / filename).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise Http404("Invalid path") from None
+    if not target.is_file():
+        raise Http404("Audio not found")
+    fh = target.open("rb")
+    resp = FileResponse(fh, content_type="audio/mpeg")
+    resp["Cache-Control"] = "private, max-age=300"
+    return resp
 
 
 def _record_event(level: str, source: str, message: str) -> None:
@@ -59,7 +112,7 @@ def _run_voice_orchestration(text: str, source: str) -> tuple[dict, int]:
         agent_provider=OpenClawCLIProvider(agent_name="nova", timeout_seconds=60),
         tts_provider=EdgeTTSProvider(voice_name="en-US-AriaNeural"),
         output_dir=getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio"),
-        output_url_prefix="/static/nova_audio/",
+        output_url_prefix=_nova_audio_output_url_prefix(),
     )
     result = orchestrator.run(raw_text=text)
     if not result.ok:

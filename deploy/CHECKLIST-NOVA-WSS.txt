@@ -63,3 +63,12 @@ On the SERVER, verify in order:
      - Browser has microphone permission allowed for `https://novamission.cloud`
      - Service user (`pock` or `www-data`) can read Vosk model directory
      - Site is served over HTTPS (required for `getUserMedia` on Android)
+
+7) Nova TTS playback (typed Send or PTT `reply` with `audio_url`)
+   - After HTTP 200 from `/api/nova/voice/` (or a WS `reply`), open DevTools → Network and find the GET for
+     `/static/nova_audio/<uuid>.mp3` (or your `STATIC_URL` + `nova_audio/`).
+   - Status 404 / wrong host → deployment mismatch: MP3s must be written to `NOVA_AUDIO_DIR` and nginx (or Django
+     static) must serve that same tree under the URL returned in JSON. With `DEBUG=False`, default dir is
+     `STATIC_ROOT/nova_audio/`; nginx should `alias` `/static/` to `staticfiles/` (see deploy/nginx-site-mission_control-fixed.conf comments).
+   - Status 200 but no sound → Console: `NotAllowedError` or `Nova audio play error` → browser autoplay policy; use the
+     dashboard **Play reply** button or tap once after the message (see `static/js/nova.js`).

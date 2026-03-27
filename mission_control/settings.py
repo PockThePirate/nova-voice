@@ -20,10 +20,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "dashboard",
+    "nova_calendar",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "django.contrib.staticfiles.middleware.StaticFilesMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -73,8 +75,29 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 CSRF_TRUSTED_ORIGINS = ["https://novamission.cloud","https://www.novamission.cloud"]
 
-# Directory for Nova TTS audio files (served via nginx/static)
-NOVA_AUDIO_DIR = BASE_DIR / "static" / "nova_audio"
+# Nova TTS: runtime MP3s must live where your HTTP server actually serves /static/.../nova_audio/.
+# - DEBUG dev: default `static/nova_audio` (in STATICFILES_DIRS; StaticFilesMiddleware finds files).
+# - Production: default `STATIC_ROOT / "nova_audio"` so nginx `alias` to staticfiles includes new files.
+# Override with NOVA_AUDIO_DIR=/abs/path if needed.
+_nova_audio_dir_override = os.environ.get("NOVA_AUDIO_DIR", "").strip()
+if _nova_audio_dir_override:
+    NOVA_AUDIO_DIR = Path(_nova_audio_dir_override)
+elif DEBUG:
+    NOVA_AUDIO_DIR = BASE_DIR / "static" / "nova_audio"
+else:
+    NOVA_AUDIO_DIR = STATIC_ROOT / "nova_audio"
+
+# JSON ``audio_url`` base. Default: Django view ``nova_audio_file`` (avoids nginx 404 on runtime MP3s).
+# Override with NOVA_AUDIO_URL_PREFIX=/static/nova_audio/ only if you serve files from static.
+_nova_audio_url_prefix_env = os.environ.get("NOVA_AUDIO_URL_PREFIX", "").strip()
+if _nova_audio_url_prefix_env:
+    NOVA_AUDIO_URL_PREFIX = (
+        _nova_audio_url_prefix_env
+        if _nova_audio_url_prefix_env.endswith("/")
+        else _nova_audio_url_prefix_env + "/"
+    )
+else:
+    NOVA_AUDIO_URL_PREFIX = "/api/nova/audio/"
 NOVA_VOSK_MODEL_PATH = os.environ.get(
     "NOVA_VOSK_MODEL_PATH",
     str(BASE_DIR / "static" / "vosk" / "model-en" / "vosk-model-small-en-us-0.15"),

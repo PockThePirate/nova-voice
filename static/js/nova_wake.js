@@ -234,9 +234,17 @@
       })
         .then(r => r.json())
         .then(d => {
-          if (d.audio_url) {
-            new Audio(d.audio_url).play().catch(function(){});
+          if (d.reply_text) {
+            setStatus(d.reply_text);
+          } else {
             setStatus("Nova replied");
+          }
+          if (d.audio_url && window.Nova && typeof window.Nova.playReplyAudio === "function") {
+            window.Nova.playReplyAudio(d.audio_url);
+          } else if (d.audio_url) {
+            new Audio(d.audio_url).play().catch(function (err) {
+              console.error("[Wake] Nova audio play error:", err);
+            });
           }
         })
         .catch(e => {

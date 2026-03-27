@@ -21,6 +21,10 @@
   }
 
   const statusEl = document.getElementById("nova-mic-status");
+  const playReplyBtn = document.getElementById("nova-play-reply-btn");
+  var lastReplyAudioUrl = "";
+  var replyPlayer = null;
+  var audioPrimed = false;
 
   /**
    * Show short status in `#nova-mic-status`.
@@ -33,18 +37,75 @@
   }
 
   /**
-   * Attempt reply audio playback and report blocked autoplay.
+   * Show or hide the manual Play reply control.
+   * @param {boolean} visible Whether the button should be visible
+   */
+  function setPlayReplyVisible(visible) {
+    if (playReplyBtn) {
+      playReplyBtn.classList.toggle("nova-play-reply-hidden", !visible);
+    }
+  }
+
+  /**
+   * Reuse one Audio element for Nova replies (helps autoplay policies).
+   * @returns {HTMLAudioElement}
+   */
+  function getReplyPlayer() {
+    if (!replyPlayer) {
+      replyPlayer = new Audio();
+    }
+    return replyPlayer;
+  }
+
+  /**
+   * Run during a user gesture (PTT tap, Send click) to improve later programmatic play.
+   * @returns {void}
+   */
+  function primeAudioPlaybackFromUserGesture() {
+    if (audioPrimed) {
+      return;
+    }
+    var a = getReplyPlayer();
+    a.src =
+      "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA";
+    a.volume = 0.001;
+    var p = a.play();
+    if (p && typeof p.then === "function") {
+      p.then(function () {
+        a.pause();
+        a.currentTime = 0;
+        a.volume = 1;
+        audioPrimed = true;
+      }).catch(function () {
+        /* ignore; browser may still allow real clip later */
+      });
+    }
+  }
+
+  /**
+   * Attempt reply audio playback; on failure show Play reply and log the error.
    * @param {string} audioUrl Static audio URL returned by Nova API
    */
   function playReplyAudio(audioUrl) {
     if (!audioUrl) {
+      setPlayReplyVisible(false);
       return;
     }
-    const player = new Audio(audioUrl);
-    player.play().catch(function (playErr) {
-      console.error("Nova audio play error:", playErr);
-      setStatus("Reply ready (tap screen to enable audio playback).");
-    });
+    lastReplyAudioUrl = audioUrl;
+    setPlayReplyVisible(true);
+    var player = getReplyPlayer();
+    player.src = audioUrl;
+    var playPromise = player.play();
+    if (playPromise && typeof playPromise.then === "function") {
+      playPromise
+        .then(function () {
+          setPlayReplyVisible(false);
+        })
+        .catch(function (playErr) {
+          console.error("Nova audio play error:", playErr);
+          setStatus('Tap "Play reply" to hear Nova (autoplay blocked).');
+        });
+    }
   }
 
   /**
@@ -175,6 +236,7 @@
       console.info("[PTT] ignoring start; active state:", streamState);
       return;
     }
+    primeAudioPlaybackFromUserGesture();
     if (!canUseStream()) {
       window.NOVA_STREAM_FAILED = true;
       setStatus("Voice stream unavailable (WebSocket client not loaded).");
@@ -326,6 +388,7 @@
         setStatus("Enter a message to send.");
         return;
       }
+      primeAudioPlaybackFromUserGesture();
       const url = form.getAttribute("action") || window.location.pathname;
       const fd = new FormData(form);
       textInput.value = "";
@@ -362,95 +425,75 @@
 
   // Expose sendToNova globally for other scripts (e.g., mission_focus.js)
   window.Nova = window.Nova || {};
+  window.Nova.playReplyAudio = playReplyAudio;
   window.Nova.sendText = function (text) {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim()) {
+      return;
+    }
+    primeAudioPlaybackFromUserGesture();
     const url = form.getAttribute("action") || "/api/nova/voice/";
     const fd = new FormData();
     fd.append("text", text.trim());
     const token = getCookie("csrftoken");
+    const headers = { Accept: "application/json" };
+    if (token) {
+      headers["X-CSRFToken"] = token;
+    }
     fetch(url, {
       method: "POST",
-      headers: token ? { "X-CSRFToken": token } : {},
+      headers: headers,
       body: fd,
       credentials: "same-origin",
     })
       .then(function (resp) {
-        return resp.json().catch(function () {
-          return { error: "Invalid response" };
-        });
+        return resp
+          .json()
+          .then(function (data) {
+            return { ok: resp.ok, status: resp.status, data: data };
+          })
+          .catch(function () {
+            return { ok: resp.ok, status: resp.status, data: { error: "Invalid response" } };
+          });
       })
-      .then(function (data) {
-        if (data && data.audio_url) {
-          const player = new Audio(data.audio_url);
-          player.play().catch(function () {});
+      .then(function (result) {
+        if (!result.ok) {
+          var errMsg =
+            (result.data && result.data.error) || "Request failed (" + result.status + ")";
+          setStatus(errMsg);
+          return;
         }
+        var data = result.data;
+        if (data && data.reply_text) {
+          setStatus(data.reply_text);
+        }
+        playReplyAudio(data && data.audio_url);
       })
       .catch(function (err) {
         console.error("Nova.sendText error:", err);
+        setStatus("Network error.");
       });
   };
 
+  if (playReplyBtn) {
+    playReplyBtn.addEventListener("click", function () {
+      if (!lastReplyAudioUrl) {
+        return;
+      }
+      primeAudioPlaybackFromUserGesture();
+      var player = getReplyPlayer();
+      player.src = lastReplyAudioUrl;
+      player
+        .play()
+        .then(function () {
+          setPlayReplyVisible(false);
+        })
+        .catch(function (err) {
+          console.error("Nova manual play error:", err);
+          setStatus("Could not play audio. Check the MP3 URL in the Network tab.");
+        });
+    });
+  }
+
   window.addEventListener("pagehide", teardownStream);
   setUiStreaming(false);
-
-  // Attach console mirroring to the on-page console panel
-  (function attachNovaConsole() {
-    var panel = document.getElementById("nova-console");
-    var clearBtn = document.getElementById("nova-console-clear");
-    var copyBtn = document.getElementById("nova-console-copy");
-    if (!panel) return;
-
-    function appendLine(kind, args) {
-      var line = document.createElement("div");
-      line.className = "console-line console-line-" + kind;
-      var text = Array.prototype.map.call(args, function (a) {
-        try {
-          if (typeof a === "object") return JSON.stringify(a);
-          return String(a);
-        } catch (_) {
-          return String(a);
-        }
-      }).join(" ");
-      line.textContent = "[" + kind.toUpperCase() + "] " + text;
-      panel.appendChild(line);
-      panel.scrollTop = panel.scrollHeight;
-    }
-
-    var origLog = console.log;
-    var origInfo = console.info;
-    var origWarn = console.warn;
-    var origError = console.error;
-
-    console.log = function () {
-      appendLine("log", arguments);
-      return origLog && origLog.apply(console, arguments);
-    };
-    console.info = function () {
-      appendLine("info", arguments);
-      return origInfo && origInfo.apply(console, arguments);
-    };
-    console.warn = function () {
-      appendLine("warn", arguments);
-      return origWarn && origWarn.apply(console, arguments);
-    };
-    console.error = function () {
-      appendLine("error", arguments);
-      return origError && origError.apply(console, arguments);
-    };
-
-    if (clearBtn) {
-      clearBtn.addEventListener("click", function () {
-        panel.innerHTML = "";
-      });
-    }
-
-    if (copyBtn && navigator.clipboard && navigator.clipboard.writeText) {
-      copyBtn.addEventListener("click", function () {
-        var text = panel.innerText || panel.textContent || "";
-        navigator.clipboard.writeText(text).catch(function (err) {
-          console.error("Failed to copy console text", err);
-        });
-      });
-    }
-  })();
 })();

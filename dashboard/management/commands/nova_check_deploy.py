@@ -11,6 +11,7 @@ import socket
 import sys
 from pathlib import Path
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
 
 
@@ -109,6 +110,24 @@ class Command(BaseCommand):
             )
         finally:
             sock.close()
+
+        nova_dir = Path(getattr(settings, "NOVA_AUDIO_DIR", ""))
+        self.stdout.write(f"\nNOVA_AUDIO_DIR: {nova_dir}\n")
+        try:
+            nova_dir.mkdir(parents=True, exist_ok=True)
+            probe = nova_dir / f".nova_deploy_probe_{os.getpid()}"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+            self.stdout.write(self.style.SUCCESS("NOVA_AUDIO_DIR exists and is writable (TTS output)."))
+        except OSError as exc:
+            self.stdout.write(
+                self.style.ERROR(
+                    f"NOVA_AUDIO_DIR not usable ({exc}) — fix permissions or set NOVA_AUDIO_DIR in the environment."
+                )
+            )
+
+        url_prefix = getattr(settings, "NOVA_AUDIO_URL_PREFIX", "/static/nova_audio/")
+        self.stdout.write(f"NOVA_AUDIO_URL_PREFIX (JSON audio_url base): {url_prefix}\n")
 
         self.stdout.write(
             "\nIf TCP is OK but the browser still fails WSS: nginx must proxy HTTPS location / "

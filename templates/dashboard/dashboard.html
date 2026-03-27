@@ -125,6 +125,13 @@
       <button type="submit" class="qa-button qa-button-primary">Send</button>
       <button type="button" class="ptt-button" id="nova-ptt-btn">🎙<br>Nova</button>
       <div id="nova-mic-status" class="nova-mic-status" aria-live="polite">Tap to speak</div>
+      <button
+        type="button"
+        class="qa-button qa-button-soft nova-play-reply-btn nova-play-reply-hidden"
+        id="nova-play-reply-btn"
+      >
+        Play reply
+      </button>
       <p class="nova-mic-hint">Tap the round button to start recording. Tap again to stop and send.</p>
     </form>
   </div>
@@ -209,6 +216,7 @@
 <script src="{% static 'js/nova_stream.js' %}" defer></script>
 <script src="{% static 'js/nova_wake_vosk.js' %}" defer></script>
 <script src="{% static 'js/nova_wake.js' %}" defer></script>
+<script src="{% static 'js/nova_console_panel.js' %}" defer></script>
 <script src="{% static 'js/nova.js' %}" defer></script>
 <script src="{% static 'js/mission_focus.js' %}" defer></script>
 <script defer src="{% static 'js/nova_ws_hint.js' %}"></script>
