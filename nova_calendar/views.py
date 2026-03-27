@@ -275,6 +275,64 @@ def delete_calendar_api(request, calendar_id):
 
 @login_required
 @require_http_methods(["POST"])
+def parse_quick_add_api(request):
+    """Parse natural language quick add text"""
+    try:
+        data = json.loads(request.body)
+        text = data.get('text', '')
+        
+        if not text:
+            return JsonResponse({'success': False, 'error': 'Text is required'}, status=400)
+        
+        from nova_calendar.services.nlp_parser import QuickAddParser
+        parser = QuickAddParser()
+        parsed = parser.parse(text)
+        
+        # Convert datetime to ISO format
+        if parsed['start']:
+            parsed['start'] = parsed['start'].isoformat()
+        if parsed['end']:
+            parsed['end'] = parsed['end'].isoformat()
+        
+        return JsonResponse({'success': True, 'parsed': parsed})
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_recurrence_api(request, event_id):
+    """Create recurrence rule for an event"""
+    try:
+        event = get_object_or_404(Event, id=event_id, calendar__user=request.user)
+        data = json.loads(request.body)
+        
+        # Delete existing recurrence if any
+        RecurrenceRule.objects.filter(event=event).delete()
+        
+        # Create new recurrence rule
+        recurrence = RecurrenceRule.objects.create(
+            event=event,
+            frequency=data.get('frequency', 'weekly'),
+            interval=data.get('interval', 1),
+            days_of_week=data.get('days_of_week', []),
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'recurrence': {
+                'frequency': recurrence.frequency,
+                'interval': recurrence.interval,
+            }
+        })
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
 def create_cron_job_api(request):
     """Create a cron job for an event"""
     try:

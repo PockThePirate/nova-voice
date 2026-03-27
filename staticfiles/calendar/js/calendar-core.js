@@ -186,7 +186,7 @@ function createCalendar(e) {
   .then(result => {
     if (result.success) {
       closeCreateCalendarModal();
-      location.reload(); // Reload to show new calendar
+      location.reload();
     } else {
       alert('Error: ' + result.error);
     }
@@ -194,6 +194,110 @@ function createCalendar(e) {
   .catch(err => {
     alert('Error creating calendar: ' + err);
   });
+}
+
+// Cron Job Modal functions
+function openCronJobModal() {
+  const eventId = document.getElementById('eventId').value;
+  if (!eventId) return;
+  
+  document.getElementById('cronJobEventId').value = eventId;
+  document.getElementById('cronJobModal').classList.add('active');
+}
+
+function closeCronJobModal() {
+  document.getElementById('cronJobModal').classList.remove('active');
+  document.getElementById('cronJobName').value = '';
+}
+
+function updateTriggerFields() {
+  const trigger = document.getElementById('cronJobTrigger').value;
+  document.getElementById('triggerBeforeField').style.display = (trigger === 'before') ? 'block' : 'none';
+  document.getElementById('triggerCustomField').style.display = (trigger === 'custom') ? 'block' : 'none';
+}
+
+function updateActionFields() {
+  const actionType = document.getElementById('cronJobActionType').value;
+  document.querySelectorAll('.action-fields').forEach(el => el.style.display = 'none');
+  
+  if (actionType === 'whatsapp_send') {
+    document.getElementById('actionWhatsappFields').style.display = 'block';
+  } else if (actionType === 'email_send') {
+    document.getElementById('actionEmailFields').style.display = 'block';
+  }
+}
+
+function saveCronJob(e) {
+  e.preventDefault();
+  
+  const eventId = document.getElementById('cronJobEventId').value;
+  const trigger = document.getElementById('cronJobTrigger').value;
+  const actionType = document.getElementById('cronJobActionType').value;
+  
+  let triggerDatetime;
+  if (trigger === 'at_event') {
+    triggerDatetime = document.getElementById('eventStart').value;
+  } else if (trigger === 'before') {
+    const value = parseInt(document.getElementById('triggerBeforeValue').value);
+    const unit = document.getElementById('triggerBeforeUnit').value;
+    // Calculate datetime based on event start minus offset
+    const eventStart = new Date(document.getElementById('eventStart').value);
+    const offset = unit === 'minutes' ? value * 60000 : unit === 'hours' ? value * 3600000 : value * 86400000;
+    triggerDatetime = new Date(eventStart.getTime() - offset).toISOString();
+  } else {
+    triggerDatetime = new Date(document.getElementById('triggerCustomDatetime').value).toISOString();
+  }
+  
+  let config = {};
+  if (actionType === 'whatsapp_send') {
+    config = {
+      to: document.getElementById('actionTo').value,
+      message: document.getElementById('actionMessage').value
+    };
+  } else if (actionType === 'email_send') {
+    config = {
+      to: document.getElementById('actionEmailTo').value,
+      subject: document.getElementById('actionEmailSubject').value,
+      body: document.getElementById('actionEmailBody').value
+    };
+  }
+  
+  const data = {
+    event_id: eventId,
+    name: document.getElementById('cronJobName').value,
+    trigger_datetime: triggerDatetime,
+    schedule_type: 'once',
+    actions: [{
+      action_type: actionType,
+      config: config,
+      order: 0
+    }]
+  };
+  
+  fetch('/calendar/api/cron-jobs/create/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      closeCronJobModal();
+      alert('✅ Cron job scheduled!');
+    } else {
+      alert('Error: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error creating cron job: ' + err);
+  });
+}
+
+function testCronJob() {
+  alert('Test run feature coming soon!');
 }
 
 // Form handlers
@@ -296,34 +400,72 @@ function updateEventTime(event) {
   .catch(err => console.error('Error updating event time:', err));
 }
 
-// Quick Add (simple version - full NLP later)
+// Quick Add with Natural Language Parsing
 function parseQuickAdd() {
   const text = document.getElementById('quickAddText').value.trim();
   if (!text) return;
   
-  // Simple parsing - will enhance with NLP library later
-  const preview = document.getElementById('quickAddPreview');
-  document.getElementById('previewTitle').textContent = text;
-  document.getElementById('previewWhen').textContent = 'Tomorrow (demo)';
-  document.getElementById('previewDuration').textContent = '1 hour';
-  preview.style.display = 'block';
+  // Send to backend for NLP parsing
+  fetch('/calendar/api/quick-add/parse/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ text: text })
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      const parsed = result.parsed;
+      
+      // Show preview
+      document.getElementById('previewTitle').textContent = parsed.title;
+      document.getElementById('previewWhen').textContent = new Date(parsed.start).toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+      });
+      
+      const durationMin = (new Date(parsed.end) - new Date(parsed.start)) / 60000;
+      document.getElementById('previewDuration').textContent = durationMin >= 1440 ? 'All day' : `${durationMin} minutes`;
+      
+      const calendarSelect = document.getElementById('quickAddCalendar');
+      document.getElementById('previewCalendar').textContent = calendarSelect.options[calendarSelect.selectedIndex]?.text || 'Default';
+      
+      if (parsed.is_recurring) {
+        document.getElementById('previewRecurrence').style.display = 'block';
+        document.getElementById('previewRecurrenceText').textContent = `Every ${parsed.recurrence.frequency}`;
+      } else {
+        document.getElementById('previewRecurrence').style.display = 'none';
+      }
+      
+      document.getElementById('quickAddPreview').style.display = 'block';
+      
+      // Store parsed data for confirmation
+      window.quickAddParsed = parsed;
+    } else {
+      alert('Error parsing: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error: ' + err);
+  });
 }
 
 function confirmQuickAdd() {
-  const text = document.getElementById('quickAddText').value.trim();
-  if (!text) return;
+  const parsed = window.quickAddParsed;
+  if (!parsed) return;
   
-  // Create event with parsed data (demo for now)
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(12, 0, 0, 0);
+  const durationMin = parseInt(document.getElementById('quickAddDuration').value);
+  const calendarId = document.getElementById('quickAddCalendar').value;
   
   const data = {
-    title: text,
-    start: tomorrow.toISOString(),
-    end: new Date(tomorrow.getTime() + 60 * 60 * 1000).toISOString(),
-    all_day: false,
-    calendar_id: document.getElementById('eventCalendar')?.value || '',
+    title: parsed.title,
+    start: parsed.start,
+    end: parsed.end,
+    all_day: durationMin >= 1440,
+    calendar_id: calendarId,
+    location: parsed.location || '',
+    description: '',
   };
   
   fetch('/calendar/api/events/create/', {
@@ -339,9 +481,24 @@ function confirmQuickAdd() {
     if (result.success) {
       closeQuickAdd();
       calendar.refetchEvents();
+      
+      // Create recurrence rule if needed
+      if (parsed.is_recurring && result.event?.id) {
+        fetch(`/calendar/api/events/${result.event.id}/recurrence/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(parsed.recurrence)
+        }).catch(() => {}); // Ignore errors for now
+      }
     } else {
       alert('Error: ' + result.error);
     }
+  })
+  .catch(err => {
+    alert('Error: ' + err);
   });
 }
 

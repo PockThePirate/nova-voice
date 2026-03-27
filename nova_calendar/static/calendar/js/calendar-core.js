@@ -400,34 +400,72 @@ function updateEventTime(event) {
   .catch(err => console.error('Error updating event time:', err));
 }
 
-// Quick Add (simple version - full NLP later)
+// Quick Add with Natural Language Parsing
 function parseQuickAdd() {
   const text = document.getElementById('quickAddText').value.trim();
   if (!text) return;
   
-  // Simple parsing - will enhance with NLP library later
-  const preview = document.getElementById('quickAddPreview');
-  document.getElementById('previewTitle').textContent = text;
-  document.getElementById('previewWhen').textContent = 'Tomorrow (demo)';
-  document.getElementById('previewDuration').textContent = '1 hour';
-  preview.style.display = 'block';
+  // Send to backend for NLP parsing
+  fetch('/calendar/api/quick-add/parse/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ text: text })
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      const parsed = result.parsed;
+      
+      // Show preview
+      document.getElementById('previewTitle').textContent = parsed.title;
+      document.getElementById('previewWhen').textContent = new Date(parsed.start).toLocaleString('en-US', {
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+      });
+      
+      const durationMin = (new Date(parsed.end) - new Date(parsed.start)) / 60000;
+      document.getElementById('previewDuration').textContent = durationMin >= 1440 ? 'All day' : `${durationMin} minutes`;
+      
+      const calendarSelect = document.getElementById('quickAddCalendar');
+      document.getElementById('previewCalendar').textContent = calendarSelect.options[calendarSelect.selectedIndex]?.text || 'Default';
+      
+      if (parsed.is_recurring) {
+        document.getElementById('previewRecurrence').style.display = 'block';
+        document.getElementById('previewRecurrenceText').textContent = `Every ${parsed.recurrence.frequency}`;
+      } else {
+        document.getElementById('previewRecurrence').style.display = 'none';
+      }
+      
+      document.getElementById('quickAddPreview').style.display = 'block';
+      
+      // Store parsed data for confirmation
+      window.quickAddParsed = parsed;
+    } else {
+      alert('Error parsing: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error: ' + err);
+  });
 }
 
 function confirmQuickAdd() {
-  const text = document.getElementById('quickAddText').value.trim();
-  if (!text) return;
+  const parsed = window.quickAddParsed;
+  if (!parsed) return;
   
-  // Create event with parsed data (demo for now)
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  tomorrow.setHours(12, 0, 0, 0);
+  const durationMin = parseInt(document.getElementById('quickAddDuration').value);
+  const calendarId = document.getElementById('quickAddCalendar').value;
   
   const data = {
-    title: text,
-    start: tomorrow.toISOString(),
-    end: new Date(tomorrow.getTime() + 60 * 60 * 1000).toISOString(),
-    all_day: false,
-    calendar_id: document.getElementById('eventCalendar')?.value || '',
+    title: parsed.title,
+    start: parsed.start,
+    end: parsed.end,
+    all_day: durationMin >= 1440,
+    calendar_id: calendarId,
+    location: parsed.location || '',
+    description: '',
   };
   
   fetch('/calendar/api/events/create/', {
@@ -443,9 +481,24 @@ function confirmQuickAdd() {
     if (result.success) {
       closeQuickAdd();
       calendar.refetchEvents();
+      
+      // Create recurrence rule if needed
+      if (parsed.is_recurring && result.event?.id) {
+        fetch(`/calendar/api/events/${result.event.id}/recurrence/`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify(parsed.recurrence)
+        }).catch(() => {}); // Ignore errors for now
+      }
     } else {
       alert('Error: ' + result.error);
     }
+  })
+  .catch(err => {
+    alert('Error: ' + err);
   });
 }
 

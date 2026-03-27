@@ -27,4 +27,8 @@ urlpatterns = [
     
     # Cron Job APIs
     path('api/cron-jobs/create/', views.create_cron_job_api, name='api_create_cron_job'),
+    
+    # Quick Add & Recurrence APIs
+    path('api/quick-add/parse/', views.parse_quick_add_api, name='api_parse_quick_add'),
+    path('api/events/<uuid:event_id>/recurrence/', views.create_recurrence_api, name='api_create_recurrence'),
 ]

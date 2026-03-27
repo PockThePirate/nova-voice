@@ -9,7 +9,7 @@ _nova_ws_env = os.environ.get("NOVA_WS_URL", "").strip()
 NOVA_WS_URL = _nova_ws_env if _nova_ws_env.startswith(("ws://", "wss://")) else None
 
 SECRET_KEY = "change-this-in-prod"
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ["127.0.0.1","localhost","100.107.120.111","147.93.113.71","novamission.cloud","www.novamission.cloud"]
 
 INSTALLED_APPS = [
