@@ -497,7 +497,29 @@
       .catch(function (err) {
         console.error("Nova.sendText error:", err);
         setStatus("Network error.");
-      });
+      })
+      .then(
+        function notifyWakeAfterSendOk(value) {
+          if (typeof window.Nova._notifyWakeReplyDone === "function") {
+            try {
+              window.Nova._notifyWakeReplyDone();
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          return value;
+        },
+        function notifyWakeAfterSendErr(reason) {
+          if (typeof window.Nova._notifyWakeReplyDone === "function") {
+            try {
+              window.Nova._notifyWakeReplyDone();
+            } catch (e) {
+              /* ignore */
+            }
+          }
+          throw reason;
+        }
+      );
   };
 
   if (playReplyBtn) {

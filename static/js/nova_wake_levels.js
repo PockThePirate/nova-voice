@@ -57,7 +57,6 @@
 
     this._hasSpoken = false;
     this._silenceMs = 0;
-    this._lastLevelSilenceLogSec = -1;
   }
 
   /**
@@ -127,14 +126,6 @@
     this._calibrationDone = false;
     this._hasSpoken = false;
     this._silenceMs = 0;
-    this._lastLevelSilenceLogSec = -1;
-    if (typeof console !== "undefined" && console.log) {
-      console.log(
-        "[Wake] LEVEL: calibrating mic",
-        this.calibrationMs,
-        "ms (noise floor at wake); then 1 log per second of quiet after speech"
-      );
-    }
   };
 
   /**
@@ -165,16 +156,6 @@
     );
     if (this._speechThreshold <= this._silenceThreshold) {
       this._speechThreshold = this._silenceThreshold + 0.012;
-    }
-    if (typeof console !== "undefined" && console.info) {
-      console.info(
-        "[Wake] Level calibrated: noiseFloor≈",
-        noiseFloor.toFixed(4),
-        "silenceThr",
-        this._silenceThreshold.toFixed(4),
-        "speechThr",
-        this._speechThreshold.toFixed(4)
-      );
     }
   };
 
@@ -220,7 +201,6 @@
     if (maxAbs >= this._speechThreshold) {
       this._hasSpoken = true;
       this._silenceMs = 0;
-      this._lastLevelSilenceLogSec = -1;
       return;
     }
 
@@ -230,20 +210,6 @@
 
     if (maxAbs < this._silenceThreshold) {
       this._silenceMs += frameMs;
-      var secFloor = Math.floor(this._silenceMs / 1000);
-      var capSec = this.silenceTimeoutMs / 1000;
-      if (secFloor > this._lastLevelSilenceLogSec && secFloor >= 1) {
-        this._lastLevelSilenceLogSec = secFloor;
-        if (typeof console !== "undefined" && console.log) {
-          console.log(
-            "[Wake] LEVEL silence:",
-            secFloor,
-            "s /",
-            capSec,
-            "s (mic below threshold after speech)"
-          );
-        }
-      }
       if (this._silenceMs >= this.silenceTimeoutMs) {
         this._silenceMs = 0;
         this._hasSpoken = false;
@@ -257,7 +223,6 @@
       }
     } else {
       this._silenceMs = 0;
-      this._lastLevelSilenceLogSec = -1;
     }
   };
 

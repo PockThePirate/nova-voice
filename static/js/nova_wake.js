@@ -10,6 +10,8 @@
 
   const WAKE_BUTTON_ID = "nova-wake-btn";
   const STATUS_EL_ID = "nova-wake-status";
+  /** Applied while an HTTP voice request is in flight (until JSON + audio URL return). */
+  const WAKE_WAITING_AUDIO_CLASS = "nova-wake-waiting-audio";
 
   const btn = document.getElementById(WAKE_BUTTON_ID);
   const statusEl = document.getElementById(STATUS_EL_ID);
@@ -34,12 +36,9 @@
   /** Debounce timers for Web Speech post-wake capture (Vosk path). */
   let wakeSpeechSilenceTimer = null;
   let wakeSpeechMaxTimer = null;
-  /** Logs once per second while waiting for COMMAND_SILENCE_MS after last transcript change. */
-  let wakeSilenceTickIntervalId = null;
   /** Debounce timers for fallback continuous recognition. */
   let fallbackSilenceTimer = null;
   let fallbackMaxTimer = null;
-  let fallbackSilenceTickIntervalId = null;
   /** Second mic stream: energy-based end-of-command (see WakeCommandLevelMonitor). */
   let wakeLevelMonitor = null;
 
@@ -54,53 +53,23 @@
     }
   }
 
-  function clearWakeSilenceTick() {
-    if (wakeSilenceTickIntervalId !== null) {
-      clearInterval(wakeSilenceTickIntervalId);
-      wakeSilenceTickIntervalId = null;
-    }
-  }
-
-  function clearFallbackSilenceTick() {
-    if (fallbackSilenceTickIntervalId !== null) {
-      clearInterval(fallbackSilenceTickIntervalId);
-      fallbackSilenceTickIntervalId = null;
-    }
-  }
-
   /**
-   * Start 1s console logs counting silence since last meaningful transcript change.
-   * @param {string} pathLabel e.g. "startSpeechCapture" or "useSpeechFallback"
+   * Toggle yellow “waiting for Nova audio” on the wake button.
+   *
+   * @param {boolean} active Whether the voice API request is in flight
+   * @returns {void}
+   *
+   * @example
+   * setWakeWaitingAudio(true);
    */
-  function startSilenceSecondLogging(pathLabel) {
-    clearWakeSilenceTick();
-    clearFallbackSilenceTick();
-    var secondsElapsed = 0;
-    var thresholdS = COMMAND_SILENCE_MS / 1000;
-    console.log(
-      "[Wake] TRANSCRIPT silence timer: logging every 1s until",
-      thresholdS,
-      "s since last text change (" + pathLabel + ")"
-    );
-    var log = function () {
-      secondsElapsed += 1;
-      console.log(
-        "[Wake] TRANSCRIPT silence:",
-        secondsElapsed,
-        "s /",
-        thresholdS,
-        "s (no STT change)"
-      );
-    };
-    if (pathLabel === "useSpeechFallback") {
-      fallbackSilenceTickIntervalId = setInterval(log, 1000);
-    } else {
-      wakeSilenceTickIntervalId = setInterval(log, 1000);
+  function setWakeWaitingAudio(active) {
+    if (!btn) {
+      return;
     }
+    btn.classList.toggle(WAKE_WAITING_AUDIO_CLASS, !!active);
   }
 
   function clearWakeSpeechTimers() {
-    clearWakeSilenceTick();
     if (wakeSpeechSilenceTimer) {
       clearTimeout(wakeSpeechSilenceTimer);
       wakeSpeechSilenceTimer = null;
@@ -112,7 +81,6 @@
   }
 
   function clearFallbackTimers() {
-    clearFallbackSilenceTick();
     if (fallbackSilenceTimer) {
       clearTimeout(fallbackSilenceTimer);
       fallbackSilenceTimer = null;
@@ -136,8 +104,9 @@
   }
 
   function setStatus(text) {
-    if (statusEl) statusEl.textContent = text;
-    console.log("[Wake] Status:", text);
+    if (statusEl) {
+      statusEl.textContent = text;
+    }
   }
 
   async function initVoskWake() {
@@ -152,7 +121,7 @@
         wakePhrases: ["nova", "hey nova"],
         modelPath: "/static/vosk/model-en/vosk-model-small-en-us-0.15.tar.gz",
         sampleRate: 16000,
-        debug: true
+        debug: false
       });
 
       // Set callback when wake word detected
@@ -180,11 +149,7 @@
 
     if (voskReady) {
       // Start the wake client (continuous audio capture)
-      wakeClient = new window.NovaWakeClient({
-        onWake: function() {
-          console.log("[Wake] Mic streaming to Vosk wake engine");
-        }
-      });
+      wakeClient = new window.NovaWakeClient({});
       await wakeClient.start();
     } else {
       // Fallback: use Web Speech API continuous mode
@@ -196,6 +161,7 @@
     if (!isListening) return;
     isListening = false;
     btn.classList.remove("recording");
+    btn.classList.remove(WAKE_WAITING_AUDIO_CLASS);
     btn.innerHTML = "Nova\u003cbr\u003e🎙";
 
     if (wakeClient) {
@@ -285,7 +251,6 @@
         clearTimeout(wakeSpeechSilenceTimer);
         wakeSpeechSilenceTimer = null;
       }
-      startSilenceSecondLogging("startSpeechCapture");
       wakeSpeechSilenceTimer = setTimeout(finalizeSpeechCapture, COMMAND_SILENCE_MS);
     };
 
@@ -303,9 +268,12 @@
         setStatus("Wake word ready - say 'Nova'");
         return;
       }
-      console.log(
-        "[Wake] startSpeechCapture: recognition session ended; waiting for silence/max timer"
-      );
+      /* Chrome often ends the session before COMMAND_SILENCE_MS; restart until we finalize. */
+      try {
+        recognition.start();
+      } catch (e) {
+        /* ignore */
+      }
     };
 
     wakeSpeechMaxTimer = setTimeout(finalizeSpeechCapture, MAX_COMMAND_CAPTURE_MS);
@@ -326,8 +294,7 @@
             wakeLevelMonitor.beginCalibration();
           }
         })
-        .catch(function (err) {
-          console.warn("[Wake] Level monitor unavailable:", err);
+        .catch(function () {
           wakeLevelMonitor = null;
         });
     }
@@ -427,8 +394,7 @@
                 wakeLevelMonitor.beginCalibration();
               }
             })
-            .catch(function (err) {
-              console.warn("[Wake] Fallback level monitor unavailable:", err);
+            .catch(function () {
               wakeLevelMonitor = null;
             });
         }
@@ -453,7 +419,6 @@
         clearTimeout(fallbackSilenceTimer);
         fallbackSilenceTimer = null;
       }
-      startSilenceSecondLogging("useSpeechFallback");
       fallbackSilenceTimer = setTimeout(finalizeFallback, COMMAND_SILENCE_MS);
     };
 
@@ -484,9 +449,6 @@
         return;
       }
       if (!fallbackDone && (fallbackSilenceTimer != null || fallbackMaxTimer != null)) {
-        console.log(
-          "[Wake] useSpeechFallback: onend while silence/max pending; deferring restart"
-        );
         return;
       }
       clearFallbackTimers();
@@ -510,8 +472,11 @@
   }
 
   function sendToNova(text) {
-    if (!text || !text.trim()) return;
+    if (!text || !text.trim()) {
+      return;
+    }
     setStatus('Sending: "' + text.substring(0, 30) + '..."');
+    setWakeWaitingAudio(true);
 
     if (window.Nova && typeof window.Nova.sendText === "function") {
       window.Nova.sendText(text.trim());
@@ -543,8 +508,10 @@
         body: fd,
         credentials: "same-origin",
       })
-        .then(r => r.json())
-        .then(d => {
+        .then(function (r) {
+          return r.json();
+        })
+        .then(function (d) {
           if (d.reply_text) {
             setStatus(d.reply_text);
           } else {
@@ -562,12 +529,43 @@
             });
           }
         })
-        .catch(e => {
+        .catch(function (e) {
           console.error("[Wake] Send error:", e);
           setStatus("Failed");
-        });
+        })
+        .then(
+          function notifyWakeFetchOk(value) {
+            if (typeof window.Nova._notifyWakeReplyDone === "function") {
+              try {
+                window.Nova._notifyWakeReplyDone();
+              } catch (e2) {
+                /* ignore */
+              }
+            } else {
+              setWakeWaitingAudio(false);
+            }
+            return value;
+          },
+          function notifyWakeFetchErr(reason) {
+            if (typeof window.Nova._notifyWakeReplyDone === "function") {
+              try {
+                window.Nova._notifyWakeReplyDone();
+              } catch (e2) {
+                /* ignore */
+              }
+            } else {
+              setWakeWaitingAudio(false);
+            }
+            throw reason;
+          }
+        );
     }
   }
+
+  window.Nova = window.Nova || {};
+  window.Nova._notifyWakeReplyDone = function () {
+    setWakeWaitingAudio(false);
+  };
 
   // Toggle button
   btn.addEventListener("click", function() {
@@ -577,8 +575,4 @@
       startListening();
     }
   });
-
-  console.log(
-    "[Wake] Initialized: Wake button active — transcript + mic level timers log here when capturing a command"
-  );
 })();

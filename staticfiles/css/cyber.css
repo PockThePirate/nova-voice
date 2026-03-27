@@ -257,6 +257,23 @@ body {
   animation: pulse 1s infinite;
 }
 
+/* Wake: waiting for Nova voice HTTP response (reply + audio URL) */
+.ptt-button.nova-wake-waiting-audio {
+  background: #c9a227;
+  color: #0a0e14;
+  border-color: #e8c547;
+  box-shadow: 0 0 20px rgba(201, 162, 39, 0.75);
+  animation: none;
+}
+
+.ptt-button.recording.nova-wake-waiting-audio {
+  background: #c9a227;
+  color: #0a0e14;
+  border-color: #e8c547;
+  box-shadow: 0 0 22px rgba(201, 162, 39, 0.85);
+  animation: none;
+}
+
 @keyframes pulse {
   0% { box-shadow: 0 0 24px rgba(62,245,255,0.8); }
   50% { box-shadow: 0 0 36px rgba(62,245,255,1); }
