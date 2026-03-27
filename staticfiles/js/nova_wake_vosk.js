@@ -14,7 +14,8 @@
 
   var _config = {
     wakePhrases: ["nova", "hey nova"],
-    modelPath: "/static/vosk/model-en/vosk-model-small-en-us-0.15.tar.gz",
+    modelPath:
+      "/static/vosk/model-en/vosk-model-small-en-us-0.15.tar.gz?v=wake20260327",
     sampleRate: 16000,
     debug: true,
   };

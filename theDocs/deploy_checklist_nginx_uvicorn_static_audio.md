@@ -2,6 +2,18 @@
 
 Use this after code updates or server restarts.
 
+**Deep dive (wake word, static failures, anti-patterns):** [`nova_wake_static_and_deployment_runbook.md`](./nova_wake_static_and_deployment_runbook.md)
+
+## After every change (quick reference)
+
+| What you changed | Run |
+|------------------|-----|
+| `static/` (JS, CSS, images) | `python manage.py collectstatic --noinput` then reload nginx if it only serves `staticfiles/` (see §3). |
+| Python / templates / Django | `sudo systemctl restart uvicorn-django-nova-asgi.service` |
+| Nginx site config | `sudo nginx -t` then `sudo systemctl reload nginx` |
+
+**Typical front-end + app edit:** collectstatic, then restart uvicorn (templates/views), then `sudo systemctl reload nginx` so workers pick up fresh `staticfiles/` without guessing.
+
 ## 1) Activate project environment
 
 ```bash

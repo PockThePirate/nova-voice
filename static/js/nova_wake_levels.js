@@ -72,8 +72,8 @@
     return navigator.mediaDevices
       .getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: false,
+          noiseSuppression: false,
           channelCount: 1,
         },
         video: false,

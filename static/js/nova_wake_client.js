@@ -114,11 +114,19 @@
     return navigator.mediaDevices
       .getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
+          echoCancellation: false,
+          noiseSuppression: false,
           channelCount: 1,
         },
         video: false,
+      })
+      .catch(function (err) {
+        console.error(
+          "[NovaWakeClient] getUserMedia failed:",
+          err && err.name,
+          err && err.message ? err.message : err
+        );
+        return Promise.reject(err);
       })
       .then(function (stream) {
         self._mediaStream = stream;
@@ -177,10 +185,10 @@
         window.NovaWakeEngine.process(floatFrame);
       }
     };
+    this._running = true;
     this._source.connect(this._processor);
     this._processor.connect(this._mute);
     this._mute.connect(ctx.destination);
-    this._running = true;
   };
 
   /**
