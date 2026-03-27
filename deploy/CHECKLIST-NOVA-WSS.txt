@@ -65,10 +65,17 @@ On the SERVER, verify in order:
      - Site is served over HTTPS (required for `getUserMedia` on Android)
 
 7) Nova TTS playback (typed Send or PTT `reply` with `audio_url`)
-   - After HTTP 200 from `/api/nova/voice/` (or a WS `reply`), open DevTools → Network and find the GET for
-     `/static/nova_audio/<uuid>.mp3` (or your `STATIC_URL` + `nova_audio/`).
-   - Status 404 / wrong host → deployment mismatch: MP3s must be written to `NOVA_AUDIO_DIR` and nginx (or Django
-     static) must serve that same tree under the URL returned in JSON. With `DEBUG=False`, default dir is
-     `STATIC_ROOT/nova_audio/`; nginx should `alias` `/static/` to `staticfiles/` (see deploy/nginx-site-mission_control-fixed.conf comments).
-   - Status 200 but no sound → Console: `NotAllowedError` or `Nova audio play error` → browser autoplay policy; use the
-     dashboard **Play reply** button or tap once after the message (see `static/js/nova.js`).
+   - Default app build: JSON `audio_url` is `GET /api/nova/audio/<uuid>.mp3` (login required, streams from `NOVA_AUDIO_DIR`).
+   - In DevTools → Network, that GET should return 200 `audio/mpeg`. If you still see `/static/nova_audio/*.mp3` in the
+     WS `reply` payload, the server is running old code or has `NOVA_FORCE_AUDIO_API_URL=0` with a legacy prefix — deploy
+     current `main`, set `NOVA_FORCE_AUDIO_API_URL=1` (see `deploy/uvicorn-django-nova-asgi.service`), restart uvicorn.
+   - Legacy static URL 404: use `deploy/nginx-nova-audio-static-alias.conf.example` or switch to API URLs.
+   - Status 200 but no sound → Console: `NotAllowedError` → autoplay; use **Play reply** (see `static/js/nova.js`).
+
+8) Deploy / restart after pulling Nova audio fixes
+   - On server: `git pull` (or sync), then `sudo systemctl restart uvicorn-django-nova-asgi` (or your ASGI unit name).
+   - Verify settings: `.venv/bin/python manage.py shell -c "from django.conf import settings; print(settings.NOVA_AUDIO_URL_PREFIX, settings.NOVA_AUDIO_DIR)"`
+     Expect: `/api/nova/audio/` and `NOVA_AUDIO_DIR` ending in `static/nova_audio` (default). If you set `NOVA_AUDIO_DIR` to
+     `staticfiles/nova_audio` but TTS writes under `static/nova_audio`, `/api/nova/audio/...` will 404 — unset the env or fix the path.
+   - In DevTools WS Messages, confirm the next `reply` frame has `audio_url` starting with `/api/nova/audio/`.
+   - Smoke: while logged in, open the `audio_url` path in a new tab → should play or download MP3.

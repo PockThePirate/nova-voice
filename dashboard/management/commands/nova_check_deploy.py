@@ -126,7 +126,7 @@ class Command(BaseCommand):
                 )
             )
 
-        url_prefix = getattr(settings, "NOVA_AUDIO_URL_PREFIX", "/static/nova_audio/")
+        url_prefix = getattr(settings, "NOVA_AUDIO_URL_PREFIX", "/api/nova/audio/")
         self.stdout.write(f"NOVA_AUDIO_URL_PREFIX (JSON audio_url base): {url_prefix}\n")
 
         self.stdout.write(

@@ -83,6 +83,27 @@
   }
 
   /**
+   * Map legacy unserved ``/static/nova_audio/*.mp3`` URLs to the Django streamer path.
+   * @param {string} audioUrl URL from JSON (path or full origin URL)
+   * @returns {string}
+   */
+  function normalizeNovaAudioUrl(audioUrl) {
+    if (!audioUrl || typeof audioUrl !== "string") {
+      return audioUrl;
+    }
+    var marker = "/static/nova_audio/";
+    var idx = audioUrl.indexOf(marker);
+    if (idx === -1) {
+      return audioUrl;
+    }
+    var name = audioUrl.slice(idx + marker.length).split("?")[0];
+    if (!name) {
+      return audioUrl;
+    }
+    return "/api/nova/audio/" + name;
+  }
+
+  /**
    * Attempt reply audio playback; on failure show Play reply and log the error.
    * @param {string} audioUrl Static audio URL returned by Nova API
    */
@@ -91,10 +112,11 @@
       setPlayReplyVisible(false);
       return;
     }
-    lastReplyAudioUrl = audioUrl;
+    var resolved = normalizeNovaAudioUrl(audioUrl);
+    lastReplyAudioUrl = resolved;
     setPlayReplyVisible(true);
     var player = getReplyPlayer();
-    player.src = audioUrl;
+    player.src = resolved;
     var playPromise = player.play();
     if (playPromise && typeof playPromise.then === "function") {
       playPromise
@@ -426,6 +448,7 @@
   // Expose sendToNova globally for other scripts (e.g., mission_focus.js)
   window.Nova = window.Nova || {};
   window.Nova.playReplyAudio = playReplyAudio;
+  window.Nova.normalizeNovaAudioUrl = normalizeNovaAudioUrl;
   window.Nova.sendText = function (text) {
     if (!text || !text.trim()) {
       return;

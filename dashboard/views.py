@@ -6,6 +6,7 @@ from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
 import logging
+import os
 import re
 from pathlib import Path
 
@@ -27,18 +28,25 @@ _NOVA_AUDIO_FILENAME = re.compile(
 
 def _nova_audio_output_url_prefix() -> str:
     """
-    Public URL prefix for Nova TTS MP3s (see ``settings.NOVA_AUDIO_URL_PREFIX``).
+    Public URL prefix for JSON ``audio_url`` (streamed by ``nova_audio_file``).
+
+    Always ``/api/nova/audio/`` unless ``NOVA_AUDIO_LEGACY_STATIC_URL=1`` is set.
 
     Args:
         None
 
     Returns:
-        str: Path prefix ending with a slash, e.g. ``/api/nova/audio/``.
+        str: Path prefix ending with a slash.
 
     Example:
         orchestrator = VoiceOrchestrator(..., output_url_prefix=_nova_audio_output_url_prefix())
     """
-    return getattr(settings, "NOVA_AUDIO_URL_PREFIX", "/api/nova/audio/")
+    if os.environ.get("NOVA_AUDIO_LEGACY_STATIC_URL", "").strip() == "1":
+        prefix = getattr(settings, "NOVA_AUDIO_URL_PREFIX", "").strip()
+        if prefix:
+            return prefix if prefix.endswith("/") else prefix + "/"
+        return f"{settings.STATIC_URL.rstrip('/')}/nova_audio/"
+    return "/api/nova/audio/"
 
 
 @login_required

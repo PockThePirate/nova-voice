@@ -1,0 +1,13 @@
+# Optional nginx snippet if JSON still returns legacy /static/nova_audio/<uuid>.mp3 and you cannot redeploy yet.
+# Replace ABS_NOVA_AUDIO_DIR with the same path as Django settings.NOVA_AUDIO_DIR (where TTS writes MP3s).
+#
+# Example paths:
+#   DEBUG=True dev:   /home/you/mission_control/static/nova_audio
+#   DEBUG=False prod: /home/you/mission_control/staticfiles/nova_audio
+#
+# Paste inside server { } for your HTTPS server_name, then: sudo nginx -t && sudo systemctl reload nginx
+
+# location /static/nova_audio/ {
+#     alias ABS_NOVA_AUDIO_DIR/;
+#     add_header Cache-Control "private, max-age=300";
+# }

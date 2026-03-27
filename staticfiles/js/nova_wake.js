@@ -242,7 +242,11 @@
           if (d.audio_url && window.Nova && typeof window.Nova.playReplyAudio === "function") {
             window.Nova.playReplyAudio(d.audio_url);
           } else if (d.audio_url) {
-            new Audio(d.audio_url).play().catch(function (err) {
+            var _u = d.audio_url;
+            if (window.Nova && typeof window.Nova.normalizeNovaAudioUrl === "function") {
+              _u = window.Nova.normalizeNovaAudioUrl(_u);
+            }
+            new Audio(_u).play().catch(function (err) {
               console.error("[Wake] Nova audio play error:", err);
             });
           }

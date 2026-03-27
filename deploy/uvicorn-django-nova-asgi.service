@@ -26,6 +26,8 @@ WorkingDirectory=REPLACE_WORKING_DIR
 Environment=NOVA_VOSK_MODEL_PATH=REPLACE_WORKING_DIR/static/vosk/model-en/vosk-model-small-en-us-0.15
 Environment=NOVA_VOSK_SAMPLE_RATE=16000
 Environment=NOVA_VOSK_MIN_AUDIO_BYTES=3200
+# audio_url is /api/nova/audio/<uuid>.mp3 unless NOVA_AUDIO_LEGACY_STATIC_URL=1 (see dashboard.views._nova_audio_output_url_prefix).
+# Remove any Environment=NOVA_AUDIO_URL_PREFIX=... from older units.
 ExecStart=REPLACE_UVICORN mission_control.asgi:application --host 127.0.0.1 --port 8001
 Restart=on-failure
 RestartSec=5

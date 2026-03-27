@@ -25,7 +25,6 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "django.contrib.staticfiles.middleware.StaticFilesMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -73,31 +72,37 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+# Django 6 removed StaticFilesMiddleware; serve /static via nginx (or runserver dev automatic handling).
 CSRF_TRUSTED_ORIGINS = ["https://novamission.cloud","https://www.novamission.cloud"]
 
-# Nova TTS: runtime MP3s must live where your HTTP server actually serves /static/.../nova_audio/.
-# - DEBUG dev: default `static/nova_audio` (in STATICFILES_DIRS; StaticFilesMiddleware finds files).
-# - Production: default `STATIC_ROOT / "nova_audio"` so nginx `alias` to staticfiles includes new files.
-# Override with NOVA_AUDIO_DIR=/abs/path if needed.
+# Nova TTS output and ``nova_audio_file`` reads: default ``static/nova_audio`` (same tree VoiceOrchestrator writes to).
+# Production often had DEBUG=False → STATIC_ROOT/nova_audio while TTS still wrote under static/nova_audio → API 404.
+# Override absolute path with NOVA_AUDIO_DIR only if you relocate the folder.
 _nova_audio_dir_override = os.environ.get("NOVA_AUDIO_DIR", "").strip()
 if _nova_audio_dir_override:
     NOVA_AUDIO_DIR = Path(_nova_audio_dir_override)
-elif DEBUG:
+else:
     NOVA_AUDIO_DIR = BASE_DIR / "static" / "nova_audio"
-else:
-    NOVA_AUDIO_DIR = STATIC_ROOT / "nova_audio"
 
-# JSON ``audio_url`` base. Default: Django view ``nova_audio_file`` (avoids nginx 404 on runtime MP3s).
-# Override with NOVA_AUDIO_URL_PREFIX=/static/nova_audio/ only if you serve files from static.
-_nova_audio_url_prefix_env = os.environ.get("NOVA_AUDIO_URL_PREFIX", "").strip()
-if _nova_audio_url_prefix_env:
-    NOVA_AUDIO_URL_PREFIX = (
-        _nova_audio_url_prefix_env
-        if _nova_audio_url_prefix_env.endswith("/")
-        else _nova_audio_url_prefix_env + "/"
-    )
-else:
+# ``NOVA_AUDIO_URL_PREFIX`` is only used when NOVA_AUDIO_LEGACY_STATIC_URL=1 (see ``dashboard.views._nova_audio_output_url_prefix``).
+# Otherwise JSON ``audio_url`` is always built as /api/nova/audio/<uuid>.mp3.
+_nova_force_api_audio = os.environ.get("NOVA_FORCE_AUDIO_API_URL", "1").strip().lower() not in (
+    "0",
+    "false",
+    "no",
+)
+if _nova_force_api_audio:
     NOVA_AUDIO_URL_PREFIX = "/api/nova/audio/"
+else:
+    _nova_audio_url_prefix_env = os.environ.get("NOVA_AUDIO_URL_PREFIX", "").strip()
+    if _nova_audio_url_prefix_env:
+        NOVA_AUDIO_URL_PREFIX = (
+            _nova_audio_url_prefix_env
+            if _nova_audio_url_prefix_env.endswith("/")
+            else _nova_audio_url_prefix_env + "/"
+        )
+    else:
+        NOVA_AUDIO_URL_PREFIX = "/api/nova/audio/"
 NOVA_VOSK_MODEL_PATH = os.environ.get(
     "NOVA_VOSK_MODEL_PATH",
     str(BASE_DIR / "static" / "vosk" / "model-en" / "vosk-model-small-en-us-0.15"),
