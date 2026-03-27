@@ -82,11 +82,12 @@
     background: var(--accent-soft);
     border: 1px solid var(--accent);
     color: var(--accent);
-    padding: 8px 16px;
+    padding: 6px 12px;
     border-radius: var(--radius);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 12px;
     transition: all 0.2s;
+    min-width: 100px;
   }
   
   .btn-soft:hover {
@@ -98,13 +99,14 @@
     background: var(--accent);
     border: none;
     color: var(--bg);
-    padding: 10px 20px;
+    padding: 8px 16px;
     border-radius: var(--radius);
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     transition: all 0.2s;
     box-shadow: 0 0 10px rgba(62, 245, 255, 0.3);
+    max-width: 200px;
   }
   
   .btn-primary:hover {
@@ -252,7 +254,8 @@
         <input type="checkbox" checked onchange="toggleCalendar('{{ cal.id }}')" id="cal-{{ cal.id }}">
       </div>
       {% empty %}
-      <div style="color: var(--muted); font-size: 13px;">No calendars yet</div>
+      <div style="color: var(--muted); font-size: 13px; margin-bottom: 10px;">No calendars yet</div>
+      <button class="btn-soft" style="width: 100%; font-size: 12px;" onclick="createDefaultCalendar()">+ Create Default Calendar</button>
       {% endfor %}
     </div>
     
