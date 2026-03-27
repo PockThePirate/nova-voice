@@ -21,6 +21,7 @@ from .services import (
     ProviderRuntimeConfig,
     VoiceOrchestrator,
 )
+from .services.mission_dashboard import DashboardMissionContextBuilder
 
 logger = logging.getLogger("nova")
 
@@ -336,6 +337,7 @@ def dashboard_view(request):
         "focus_summary_text": focus_summary_text,
         "provider_capabilities": runtime_config.capabilities,
     }
+    DashboardMissionContextBuilder.extend(context)
     return render(request, "dashboard/dashboard.html", context)
 
 

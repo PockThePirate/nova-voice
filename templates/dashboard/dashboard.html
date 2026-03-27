@@ -3,16 +3,58 @@
 {% block title %}Nova Mission Control{% endblock %}
 {% block content %}
 
-{# TOP ROW: STATUS TILES + QUICK ACTIONS #}
-<div class="status-grid">
-  <div class="status-tile">
+{# Stark strip + pipeline + build/IoT (Nova voice panel below, unchanged) #}
+<div class="status-grid stark-mission-grid">
+  <div class="status-tile stark-target-tile">
     <div class="status-header">
-      <span class="status-label">Mission Control</span>
-      <span class="status-pill status-pill-online">ONLINE</span>
+      <span class="status-label">Freelance target</span>
+      <span class="status-pill status-pill-online">{{ income_currency }}</span>
     </div>
     <div class="status-body">
       <div class="status-metric">
-        <span class="status-metric-label">Active Missions</span>
+        <span class="status-metric-label">Annual</span>
+        <span class="status-metric-value">{{ income_annual_display }}</span>
+      </div>
+      <div class="status-metric">
+        <span class="status-metric-label">Monthly</span>
+        <span class="status-metric-value">{{ income_monthly_display }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="status-tile">
+    <div class="status-header">
+      <span class="status-label">Pipeline</span>
+      <span class="status-pill status-pill-soft">counts</span>
+    </div>
+    <div class="status-body">
+      <div class="status-metric">
+        <span class="status-metric-label">Lead</span>
+        <span class="status-metric-value">{{ pipeline_stage_counts.lead }}</span>
+      </div>
+      <div class="status-metric">
+        <span class="status-metric-label">Proposal</span>
+        <span class="status-metric-value">{{ pipeline_stage_counts.proposal }}</span>
+      </div>
+      <div class="status-metric">
+        <span class="status-metric-label">Active</span>
+        <span class="status-metric-value">{{ pipeline_stage_counts.active }}</span>
+      </div>
+      <div class="status-metric">
+        <span class="status-metric-label">Paid</span>
+        <span class="status-metric-value">{{ pipeline_stage_counts.paid }}</span>
+      </div>
+    </div>
+  </div>
+  <div class="status-tile">
+    <div class="status-header">
+      <span class="status-label">Today build</span>
+      <span class="status-pill {% if daily_build.done %}status-pill-online{% else %}status-pill-warn{% endif %}">
+        {% if daily_build %}{% if daily_build.done %}done{% else %}open{% endif %}{% else %}unset{% endif %}
+      </span>
+    </div>
+    <div class="status-body">
+      <div class="status-metric">
+        <span class="status-metric-label">DB missions</span>
         <span class="status-metric-value">{{ missions|length }}</span>
       </div>
       <div class="status-metric">
@@ -21,42 +63,79 @@
       </div>
     </div>
   </div>
-
-
   <div class="status-tile quick-actions">
     <div class="status-header">
-      <span class="status-label">Quick Actions</span>
-      <span class="status-pill status-pill-soft">MANUAL</span>
+      <span class="status-label">Admin</span>
+      <span class="status-pill status-pill-soft">data</span>
     </div>
     <div class="status-body quick-actions-body">
-      <button class="qa-button qa-button-primary" type="button">Start Mission</button>
-      <button class="qa-button qa-button-secondary" type="button">Pause All</button>
-      <button class="qa-button qa-button-soft" type="button">Ack Alerts</button>
+      <a class="qa-button qa-button-soft" href="{{ admin_income_url }}">Income</a>
+      <a class="qa-button qa-button-soft" href="{{ admin_pipeline_url }}">Pipeline</a>
+      <a class="qa-button qa-button-soft" href="{{ admin_build_url }}">Build</a>
+      <a class="qa-button qa-button-soft" href="{{ admin_iot_url }}">IoT</a>
     </div>
   </div>
 </div>
 
-{# SECOND ROW: TODAY'S FOCUS + MISSION LOGS (FILES) #}
-<div class="panel" style="grid-column: 1 / span 1;">
+<div class="panel mission-pipeline-panel">
   <div class="panel-header">
     <div>
-      <div class="panel-title">Todays Focus</div>
+      <div class="panel-title">Freelance pipeline</div>
+      <div class="panel-sub">Set next actions from the dashboard</div>
+    </div>
+    <a class="qa-button qa-button-secondary" href="{{ admin_pipeline_url }}">Full edit</a>
+  </div>
+  <ul class="list">
+    {% for row in pipeline_rows %}
+      <li class="list-item mission-pipeline-row">
+        <div class="mission-pipeline-main">
+          <div class="list-label">{{ row.item.name }}</div>
+          <div class="list-meta">{{ row.item.get_stage_display }}{% if row.item.expected_value_cents %} · {{ row.expected_display }}{% endif %}</div>
+        </div>
+        <form method="post" action="{% url 'dashboard_pipeline_next' row.item.id %}" class="mission-inline-form mission-pipeline-form">
+          {% csrf_token %}
+          <input type="text" name="next_action" value="{{ row.item.next_action }}" class="mission-pipeline-input" maxlength="500" />
+          <button type="submit" class="qa-button qa-button-primary">Save</button>
+        </form>
+      </li>
+    {% empty %}
+      <li class="list-item">
+        <div class="list-meta">No pipeline rows yet. Add leads and clients in admin.</div>
+      </li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="panel dashboard-panel-col1 mission-build-panel">
+  <div class="panel-header">
+    <div>
+      <div class="panel-title">Today build and focus</div>
       <div class="panel-sub">
-        {% if focus_mission %}{{ focus_mission.title }}{% else %}No focus mission yet{% endif %}
+        {% if daily_build %}{{ daily_build.title }}{% else %}No build row for today — add one in admin or tap Mark done to create a default.{% endif %}
       </div>
     </div>
-    <div style="display:flex; gap:6px; align-items:center;">
+    <div class="panel-header-actions">
+      <form method="post" action="{% url 'dashboard_build_toggle' %}" class="mission-inline-form">
+        {% csrf_token %}
+        <button type="submit" class="qa-button qa-button-primary">
+          {% if daily_build %}{% if daily_build.done %}Mark open{% else %}Mark done{% endif %}{% else %}Start today{% endif %}
+        </button>
+      </form>
+      <a class="qa-button qa-button-soft" href="{{ admin_build_url }}">Edit build</a>
       {% if focus_mission %}
         <a class="qa-button qa-button-secondary" href="{% url 'mission_detail' focus_mission.slug %}">Open Log</a>
         <button
           type="button"
           class="qa-button qa-button-soft"
           id="focus-play"
-          {% if focus_summary_text %}data-focus-summary="{{ focus_summary_text }}"{% endif %}
+          {% if focus_summary_text %}data-focus-summary="{{ focus_summary_text|escapejs }}"{% endif %}
         >Play Summary</button>
       {% endif %}
     </div>
   </div>
+  {% if daily_build and daily_build.notes %}
+  <p class="mission-build-notes">{{ daily_build.notes }}</p>
+  {% endif %}
   <ul class="list">
     {% for a in focus_actions %}
       <li class="list-item">
@@ -64,38 +143,51 @@
       </li>
     {% empty %}
       <li class="list-item">
-        <div class="list-meta">No next actions defined. Edit the mission log to add them.</div>
+        <div class="list-meta">No next actions in the first mission file. Add a ## Next 3 Actions section.</div>
       </li>
     {% endfor %}
   </ul>
 </div>
 
-<div class="panel" style="grid-column: 2 / span 1;">
+<div class="panel dashboard-panel-col2 mission-iot-panel">
   <div class="panel-header">
     <div>
-      <div class="panel-title">Mission Logs</div>
-      <div class="panel-sub">File-based mission artifacts</div>
+      <div class="panel-title">IoT lab</div>
+      <div class="panel-sub">Hardware notes and touch log</div>
     </div>
-    <a class="qa-button qa-button-secondary" href="{% url 'missions_list' %}">Open Missions View</a>
+    <a class="qa-button qa-button-secondary" href="{{ admin_iot_url }}">Edit lab</a>
   </div>
   <ul class="list">
-    {% for m in mission_files %}
+    {% for e in iot_entries %}
       <li class="list-item">
         <div>
-          <div class="list-label">{{ m.title }}</div>
-          <div class="list-meta">Slug: {{ m.slug }}</div>
+          <div class="list-label">{{ e.name }}</div>
+          <div class="list-meta">{% if e.location %}{{ e.location }} · {% endif %}Last {{ e.last_touched|date:"M j H:i" }}</div>
         </div>
-        <div style="display:flex; gap:6px; align-items:center;">
-          <a class="qa-button qa-button-primary" href="{% url 'mission_detail' m.slug %}">View</a>
-          <a class="qa-button qa-button-secondary" href="{% url 'mission_download' m.slug %}">Download</a>
-        </div>
+        <form method="post" action="{% url 'dashboard_iot_touch' e.id %}" class="mission-inline-form">
+          {% csrf_token %}
+          <button type="submit" class="qa-button qa-button-soft">Touch</button>
+        </form>
       </li>
     {% empty %}
       <li class="list-item">
-        <div class="list-meta">No mission logs yet.</div>
+        <div class="list-meta">No IoT entries yet. Add devices in admin.</div>
       </li>
     {% endfor %}
   </ul>
+  <div class="mission-file-links">
+    <div class="panel-sub mission-file-links-title">File missions</div>
+    <ul class="list">
+      {% for m in mission_files %}
+        <li class="list-item">
+          <a class="nav-link mission-file-link" href="{% url 'mission_detail' m.slug %}">{{ m.title }}</a>
+        </li>
+      {% empty %}
+        <li class="list-item"><div class="list-meta">No mission logs yet.</div></li>
+      {% endfor %}
+    </ul>
+    <a class="qa-button qa-button-secondary mission-all-missions-btn" href="{% url 'missions_list' %}">All missions</a>
+  </div>
 </div>
 
 
@@ -170,11 +262,11 @@
   </ul>
 </div>
 
-<div class="panel timeline-panel" style="grid-column: 2 / span 1;">
+<div class="panel timeline-panel dashboard-panel-col2 mission-activity-panel">
   <div class="panel-header">
     <div>
-      <div class="panel-title">Mission Timeline</div>
-      <div class="panel-sub">Last 20 events across all systems</div>
+      <div class="panel-title">Activity log</div>
+      <div class="panel-sub">Nova, voice, build, income, and IoT events</div>
     </div>
   </div>
   <div class="timeline" id="nova-timeline">

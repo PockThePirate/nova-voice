@@ -453,3 +453,92 @@ body {
 .nova-play-reply-hidden {
   display: none !important;
 }
+
+/* Mission dashboard: income, pipeline, build, IoT (grid placement; no inline styles in template) */
+.stark-mission-grid {
+  grid-column: 1 / span 2;
+}
+
+.mission-pipeline-panel {
+  grid-column: 1 / span 2;
+}
+
+.dashboard-panel-col1 {
+  grid-column: 1 / span 1;
+}
+
+.dashboard-panel-col2 {
+  grid-column: 2 / span 1;
+}
+
+.panel-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mission-inline-form {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mission-pipeline-row {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.mission-pipeline-main {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.mission-pipeline-form {
+  flex: 2 1 220px;
+  justify-content: flex-end;
+}
+
+.mission-pipeline-input {
+  flex: 1 1 140px;
+  min-width: 120px;
+  max-width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgba(5, 8, 20, 0.85);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.mission-build-notes {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.mission-file-links {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mission-file-links-title {
+  margin-bottom: 6px;
+}
+
+.mission-file-link {
+  text-decoration: none;
+}
+
+.mission-all-missions-btn {
+  margin-top: 8px;
+}
+
+.mission-activity-panel {
+  margin-top: 0;
+}

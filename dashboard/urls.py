@@ -1,9 +1,24 @@
 from django.urls import path
 
-from . import views
+from . import mission_widget_views, views
 
 urlpatterns = [
     path("", views.dashboard_view, name="dashboard"),
+    path(
+        "mission/build/toggle/",
+        mission_widget_views.dashboard_build_toggle,
+        name="dashboard_build_toggle",
+    ),
+    path(
+        "mission/pipeline/<int:pipeline_id>/next/",
+        mission_widget_views.dashboard_pipeline_next,
+        name="dashboard_pipeline_next",
+    ),
+    path(
+        "mission/iot/<int:entry_id>/touch/",
+        mission_widget_views.dashboard_iot_touch,
+        name="dashboard_iot_touch",
+    ),
     path("agents/<int:agent_id>/toggle/", views.toggle_agent_active, name="toggle_agent"),
     path("agents/<int:agent_id>/mode/", views.set_agent_mode, name="set_agent_mode"),
     path("api/nova/voice/", views.nova_voice_api, name="nova_voice_api"),
