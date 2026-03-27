@@ -255,8 +255,8 @@
       </div>
       {% empty %}
       <div style="color: var(--muted); font-size: 13px; margin-bottom: 10px;">No calendars yet</div>
-      <button class="btn-soft" style="width: 100%; font-size: 12px;" onclick="createDefaultCalendar()">+ Create Default Calendar</button>
       {% endfor %}
+      <button class="btn-soft" style="width: 100%; font-size: 12px; margin-top: 10px;" onclick="openCreateCalendarModal()">+ New Calendar</button>
     </div>
     
     <div class="sidebar-section">
@@ -340,6 +340,7 @@
       
       <div class="modal-actions">
         <button type="button" class="btn-soft" onclick="deleteEvent()" id="deleteBtn" style="display:none;">Delete</button>
+        <button type="button" class="btn-soft" onclick="openCronJobModal()" style="display:none;" id="cronJobBtn">⏰ Schedule Action</button>
         <button type="submit" class="btn-primary">Save Event</button>
       </div>
     </form>
@@ -370,6 +371,134 @@
       <button type="button" class="btn-soft" onclick="closeQuickAdd()">Cancel</button>
       <button type="button" class="btn-primary" onclick="confirmQuickAdd()">Confirm</button>
     </div>
+  </div>
+</div>
+
+<!-- Cron Job Builder Modal -->
+<div class="modal-overlay" id="cronJobModal">
+  <div class="modal-content" style="max-width: 700px;">
+    <div class="modal-header">
+      <h2 class="modal-title">Schedule Event Action</h2>
+      <button class="modal-close" onclick="closeCronJobModal()">&times;</button>
+    </div>
+    
+    <form onsubmit="saveCronJob(event)">
+      <input type="hidden" id="cronJobEventId">
+      
+      <div class="form-group">
+        <label class="form-label">Action Name *</label>
+        <input type="text" class="form-input" id="cronJobName" required placeholder="e.g., Send Prep Reminder">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Trigger</label>
+        <select class="form-select" id="cronJobTrigger" onchange="updateTriggerFields()">
+          <option value="at_event">At event start</option>
+          <option value="before">__ minutes/hours/days before event</option>
+          <option value="custom">Custom date/time</option>
+        </select>
+      </div>
+      
+      <div id="triggerBeforeField" class="form-group" style="display: none;">
+        <div class="form-row">
+          <input type="number" class="form-input" id="triggerBeforeValue" placeholder="15" min="1">
+          <select class="form-select" id="triggerBeforeUnit">
+            <option value="minutes">Minutes</option>
+            <option value="hours">Hours</option>
+            <option value="days">Days</option>
+          </select>
+        </div>
+      </div>
+      
+      <div id="triggerCustomField" class="form-group" style="display: none;">
+        <input type="datetime-local" class="form-input" id="triggerCustomDatetime">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Action Type *</label>
+        <select class="form-select" id="cronJobActionType" onchange="updateActionFields()">
+          <option value="whatsapp_send">Send WhatsApp</option>
+          <option value="email_send">Send Email</option>
+          <option value="nova_voice_announce">Nova Voice Announcement</option>
+          <option value="run_script">Run Script</option>
+          <option value="webhook_post">Webhook POST</option>
+        </select>
+      </div>
+      
+      <div id="actionWhatsappFields" class="action-fields">
+        <div class="form-group">
+          <label class="form-label">To (Phone Number)</label>
+          <input type="tel" class="form-input" id="actionTo" placeholder="+1 (816) 392-3022">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea class="form-textarea" id="actionMessage" placeholder="Meeting starts in 15 min! Agenda:..."></textarea>
+          <div style="font-size: 11px; color: var(--muted); margin-top: 4px;">
+            Use {'{event_title}'} to insert event title
+          </div>
+        </div>
+      </div>
+      
+      <div id="actionEmailFields" class="action-fields" style="display: none;">
+        <div class="form-group">
+          <label class="form-label">To (Email)</label>
+          <input type="email" class="form-input" id="actionEmailTo" placeholder="user@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" id="actionEmailSubject" placeholder="Reminder: {event_title}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Body</label>
+          <textarea class="form-textarea" id="actionEmailBody" placeholder="Event reminder..."></textarea>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn-soft" onclick="testCronJob()">Test Run</button>
+        <button type="button" class="btn-soft" onclick="closeCronJobModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Save Cron Job</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Create Calendar Modal -->
+<div class="modal-overlay" id="createCalendarModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 class="modal-title">Create Calendar</h2>
+      <button class="modal-close" onclick="closeCreateCalendarModal()">&times;</button>
+    </div>
+    
+    <form onsubmit="createCalendar(event)">
+      <div class="form-group">
+        <label class="form-label">Calendar Name *</label>
+        <input type="text" class="form-input" id="newCalendarName" required placeholder="e.g., Work, Personal, Dentist">
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Color</label>
+        <input type="color" class="form-input" id="newCalendarColor" value="#3ef5ff" style="height: 40px;">
+        <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button type="button" class="btn-soft" onclick="setColor('#3ef5ff')" style="background: #3ef5ff22; border-color: #3ef5ff; min-width: auto; padding: 4px 8px;">Cyan</button>
+          <button type="button" class="btn-soft" onclick="setColor('#ff3ef5')" style="background: #ff3ef522; border-color: #ff3ef5; min-width: auto; padding: 4px 8px;">Magenta</button>
+          <button type="button" class="btn-soft" onclick="setColor('#65ff9a')" style="background: #65ff9a22; border-color: #65ff9a; min-width: auto; padding: 4px 8px;">Green</button>
+          <button type="button" class="btn-soft" onclick="setColor('#ffb84b')" style="background: #ffb84b22; border-color: #ffb84b; min-width: auto; padding: 4px 8px;">Orange</button>
+          <button type="button" class="btn-soft" onclick="setColor('#ff4b6e')" style="background: #ff4b6e22; border-color: #ff4b6e; min-width: auto; padding: 4px 8px;">Red</button>
+        </div>
+      </div>
+      
+      <div class="form-group">
+        <label class="form-label">Description (optional)</label>
+        <textarea class="form-textarea" id="newCalendarDesc" placeholder="What's this calendar for?"></textarea>
+      </div>
+      
+      <div class="modal-actions">
+        <button type="button" class="btn-soft" onclick="closeCreateCalendarModal()">Cancel</button>
+        <button type="submit" class="btn-primary">Create Calendar</button>
+      </div>
+    </form>
   </div>
 </div>
 

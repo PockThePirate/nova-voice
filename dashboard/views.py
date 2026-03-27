@@ -1,13 +1,17 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.http import require_POST
-from django.http import JsonResponse, FileResponse, Http404
+from django.http import JsonResponse, FileResponse, Http404, HttpResponse
 from django.conf import settings
 from django.views.decorators.csrf import csrf_exempt
 
+import io
 import logging
 import os
 import re
+import secrets
+import tarfile
+from datetime import datetime, timezone
 from pathlib import Path
 
 from .models import Agent, NodeStatus, Mission, Event
@@ -24,6 +28,73 @@ logger = logging.getLogger("nova")
 _NOVA_AUDIO_FILENAME = re.compile(
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\.mp3$"
 )
+
+
+def _expected_gateway_derived_token(now_utc: datetime | None = None) -> str:
+    """
+    General purpose: Build the optional derived gateway token from UTC date.
+
+    Args:
+        now_utc (datetime | None): Optional UTC datetime override for testing.
+
+    Returns:
+        str: Derived token in ``I@mWho1$@yIamMMDD`` format.
+
+    Example:
+        token = _expected_gateway_derived_token()
+    """
+    ts = now_utc or datetime.now(timezone.utc)
+    return "I@mWho1$@yIam" + ts.strftime("%m%d")
+
+
+def _is_gateway_token_valid(provided_token: str) -> bool:
+    """
+    General purpose: Validate machine token using explicit or derived mode.
+
+    Args:
+        provided_token (str): Token supplied by client header.
+
+    Returns:
+        bool: ``True`` when token matches configured auth mode.
+
+    Example:
+        ok = _is_gateway_token_valid(request.headers.get("X-Nova-Gateway-Token", ""))
+    """
+    token = (provided_token or "").strip()
+    expected_token = getattr(settings, "NOVA_GATEWAY_INTERNAL_TOKEN", "").strip()
+    if expected_token:
+        return secrets.compare_digest(token, expected_token)
+    derived_enabled = bool(getattr(settings, "NOVA_DEVICE_TOKEN_DERIVED", False))
+    if not derived_enabled:
+        return False
+    expected_derived = _expected_gateway_derived_token()
+    return secrets.compare_digest(token, expected_derived)
+
+
+def _resolve_nova_audio_target(filename: str) -> Path:
+    """
+    General purpose: Resolve and validate a Nova MP3 path inside ``NOVA_AUDIO_DIR``.
+
+    Args:
+        filename (str): UUID-like mp3 filename from URL path.
+
+    Returns:
+        Path: Absolute validated path to the requested MP3 file.
+
+    Example:
+        target = _resolve_nova_audio_target("550e8400-e29b-41d4-a716-446655440000.mp3")
+    """
+    if not _NOVA_AUDIO_FILENAME.match(filename):
+        raise Http404("Invalid audio file name")
+    base = Path(getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio")).resolve()
+    target = (base / filename).resolve()
+    try:
+        target.relative_to(base)
+    except ValueError:
+        raise Http404("Invalid path") from None
+    if not target.is_file():
+        raise Http404("Audio not found")
+    return target
 
 
 def _nova_audio_output_url_prefix() -> str:
@@ -64,20 +135,67 @@ def nova_audio_file(request, filename: str):
     Example:
         GET /api/nova/audio/550e8400-e29b-41d4-a716-446655440000.mp3
     """
-    if not _NOVA_AUDIO_FILENAME.match(filename):
-        raise Http404("Invalid audio file name")
-    base = Path(getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio")).resolve()
-    target = (base / filename).resolve()
-    try:
-        target.relative_to(base)
-    except ValueError:
-        raise Http404("Invalid path") from None
-    if not target.is_file():
-        raise Http404("Audio not found")
+    target = _resolve_nova_audio_target(filename)
     fh = target.open("rb")
     resp = FileResponse(fh, content_type="audio/mpeg")
     resp["Cache-Control"] = "private, max-age=300"
     return resp
+
+
+def nova_audio_device(request, filename: str):
+    """
+    General purpose: Stream Nova MP3 files for headless devices with token auth.
+
+    Args:
+        request: HttpRequest containing ``X-Nova-Gateway-Token`` header.
+        filename (str): UUID-based mp3 filename.
+
+    Returns:
+        FileResponse | JsonResponse: MP3 stream when authorized, else 403 JSON.
+
+    Example:
+        GET /api/nova/audio/device/550e8400-e29b-41d4-a716-446655440000.mp3
+    """
+    provided_token = request.headers.get("X-Nova-Gateway-Token", "")
+    if not _is_gateway_token_valid(provided_token):
+        return JsonResponse({"error": "forbidden"}, status=403)
+    target = _resolve_nova_audio_target(filename)
+    fh = target.open("rb")
+    resp = FileResponse(fh, content_type="audio/mpeg")
+    resp["Cache-Control"] = "private, max-age=300"
+    return resp
+
+
+def nova_device_bundle(request):
+    """
+    General purpose: Download the Raspberry Pi installer bundle with token auth.
+
+    Args:
+        request: HttpRequest containing ``X-Nova-Gateway-Token`` header.
+
+    Returns:
+        HttpResponse | JsonResponse: ``tar.gz`` payload or 4xx JSON error.
+
+    Example:
+        GET /api/nova/device/bundle
+    """
+    provided_token = request.headers.get("X-Nova-Gateway-Token", "")
+    if not _is_gateway_token_valid(provided_token):
+        return JsonResponse({"error": "forbidden"}, status=403)
+
+    base_dir = Path(settings.BASE_DIR)
+    bundle_root = base_dir / "device" / "raspberry_pi"
+    if not bundle_root.is_dir():
+        return JsonResponse({"error": "bundle_not_found"}, status=404)
+
+    archive = io.BytesIO()
+    with tarfile.open(fileobj=archive, mode="w:gz") as tar:
+        tar.add(bundle_root, arcname="raspberry_pi")
+    payload = archive.getvalue()
+    response = HttpResponse(payload, content_type="application/gzip")
+    response["Content-Disposition"] = 'attachment; filename="nova-raspberry-pi-bundle.tar.gz"'
+    response["Cache-Control"] = "no-store"
+    return response
 
 
 def _record_event(level: str, source: str, message: str) -> None:
@@ -362,9 +480,9 @@ def nova_voice_gateway_api(request):
     Example:
         POST /api/nova/voice/internal/ with form field `text`.
     """
-    expected_token = getattr(settings, "NOVA_GATEWAY_INTERNAL_TOKEN", "").strip()
     provided_token = request.headers.get("X-Nova-Gateway-Token", "").strip()
-    if expected_token and provided_token != expected_token:
+    expected_token = getattr(settings, "NOVA_GATEWAY_INTERNAL_TOKEN", "").strip()
+    if expected_token and not _is_gateway_token_valid(provided_token):
         return JsonResponse({"error": "forbidden"}, status=403)
     text = request.POST.get("text", "").strip()
     if not text:

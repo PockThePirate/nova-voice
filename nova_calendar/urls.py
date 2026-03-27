@@ -20,4 +20,11 @@ urlpatterns = [
     # Reminder APIs
     path('api/events/<uuid:event_id>/reminders/', views.create_reminder_api, name='api_create_reminder'),
     path('api/reminders/<uuid:reminder_id>/delete/', views.delete_reminder_api, name='api_delete_reminder'),
+    
+    # Calendar APIs
+    path('api/calendars/create/', views.create_calendar_api, name='api_create_calendar'),
+    path('api/calendars/<uuid:calendar_id>/delete/', views.delete_calendar_api, name='api_delete_calendar'),
+    
+    # Cron Job APIs
+    path('api/cron-jobs/create/', views.create_cron_job_api, name='api_create_cron_job'),
 ]

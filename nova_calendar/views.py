@@ -222,3 +222,97 @@ def delete_reminder_api(request, reminder_id):
         return JsonResponse({'success': True})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_calendar_api(request):
+    """Create a new calendar"""
+    try:
+        data = json.loads(request.body)
+        name = data.get('name', '').strip()
+        color = data.get('color', '#3ef5ff')
+        description = data.get('description', '')
+        
+        if not name:
+            return JsonResponse({'success': False, 'error': 'Name is required'}, status=400)
+        
+        calendar = Calendar.objects.create(
+            user=request.user,
+            name=name,
+            color=color,
+            description=description
+        )
+        
+        return JsonResponse({
+            'success': True,
+            'calendar': {
+                'id': str(calendar.id),
+                'name': calendar.name,
+                'color': calendar.color,
+            }
+        }, status=201)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["DELETE"])
+def delete_calendar_api(request, calendar_id):
+    """Delete a calendar"""
+    try:
+        calendar = get_object_or_404(Calendar, id=calendar_id, user=request.user)
+        event_count = calendar.events.count()
+        calendar.delete()
+        return JsonResponse({
+            'success': True,
+            'deleted_events': event_count
+        })
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+@require_http_methods(["POST"])
+def create_cron_job_api(request):
+    """Create a cron job for an event"""
+    try:
+        data = json.loads(request.body)
+        event_id = data.get('event_id')
+        event = get_object_or_404(Event, id=event_id, calendar__user=request.user)
+        
+        # Create cron job
+        from datetime import datetime
+        trigger_dt = datetime.fromisoformat(data['trigger_datetime'].replace('Z', '+00:00'))
+        
+        cron_job = CronJob.objects.create(
+            event=event,
+            name=data.get('name', 'Scheduled Action'),
+            schedule_type=data.get('schedule_type', 'once'),
+            trigger_datetime=trigger_dt,
+            next_run_at=trigger_dt,
+            enabled=True
+        )
+        
+        # Create actions
+        actions = data.get('actions', [])
+        for idx, action_data in enumerate(actions):
+            CronJobAction.objects.create(
+                cron_job=cron_job,
+                action_type=action_data['action_type'],
+                config=action_data.get('config', {}),
+                order=action_data.get('order', idx)
+            )
+        
+        return JsonResponse({
+            'success': True,
+            'cron_job': {
+                'id': str(cron_job.id),
+                'name': cron_job.name,
+                'trigger_datetime': cron_job.trigger_datetime.isoformat(),
+            }
+        }, status=201)
+        
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)

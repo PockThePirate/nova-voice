@@ -146,6 +146,56 @@ function closeQuickAdd() {
   document.getElementById('quickAddPreview').style.display = 'none';
 }
 
+function openCreateCalendarModal() {
+  document.getElementById('createCalendarModal').classList.add('active');
+  document.getElementById('newCalendarName').focus();
+}
+
+function closeCreateCalendarModal() {
+  document.getElementById('createCalendarModal').classList.remove('active');
+  document.getElementById('newCalendarName').value = '';
+  document.getElementById('newCalendarDesc').value = '';
+  document.getElementById('newCalendarColor').value = '#3ef5ff';
+}
+
+function setColor(color) {
+  document.getElementById('newCalendarColor').value = color;
+}
+
+function createCalendar(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById('newCalendarName').value.trim();
+  const color = document.getElementById('newCalendarColor').value;
+  const description = document.getElementById('newCalendarDesc').value.trim();
+  
+  if (!name) {
+    alert('Calendar name is required');
+    return;
+  }
+  
+  fetch('/calendar/api/calendars/create/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ name, color, description })
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      closeCreateCalendarModal();
+      location.reload(); // Reload to show new calendar
+    } else {
+      alert('Error: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error creating calendar: ' + err);
+  });
+}
+
 // Form handlers
 function toggleAllDay() {
   const isAllDay = document.getElementById('eventAllDay').checked;

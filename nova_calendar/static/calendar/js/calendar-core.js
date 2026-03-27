@@ -146,6 +146,160 @@ function closeQuickAdd() {
   document.getElementById('quickAddPreview').style.display = 'none';
 }
 
+function openCreateCalendarModal() {
+  document.getElementById('createCalendarModal').classList.add('active');
+  document.getElementById('newCalendarName').focus();
+}
+
+function closeCreateCalendarModal() {
+  document.getElementById('createCalendarModal').classList.remove('active');
+  document.getElementById('newCalendarName').value = '';
+  document.getElementById('newCalendarDesc').value = '';
+  document.getElementById('newCalendarColor').value = '#3ef5ff';
+}
+
+function setColor(color) {
+  document.getElementById('newCalendarColor').value = color;
+}
+
+function createCalendar(e) {
+  e.preventDefault();
+  
+  const name = document.getElementById('newCalendarName').value.trim();
+  const color = document.getElementById('newCalendarColor').value;
+  const description = document.getElementById('newCalendarDesc').value.trim();
+  
+  if (!name) {
+    alert('Calendar name is required');
+    return;
+  }
+  
+  fetch('/calendar/api/calendars/create/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify({ name, color, description })
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      closeCreateCalendarModal();
+      location.reload();
+    } else {
+      alert('Error: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error creating calendar: ' + err);
+  });
+}
+
+// Cron Job Modal functions
+function openCronJobModal() {
+  const eventId = document.getElementById('eventId').value;
+  if (!eventId) return;
+  
+  document.getElementById('cronJobEventId').value = eventId;
+  document.getElementById('cronJobModal').classList.add('active');
+}
+
+function closeCronJobModal() {
+  document.getElementById('cronJobModal').classList.remove('active');
+  document.getElementById('cronJobName').value = '';
+}
+
+function updateTriggerFields() {
+  const trigger = document.getElementById('cronJobTrigger').value;
+  document.getElementById('triggerBeforeField').style.display = (trigger === 'before') ? 'block' : 'none';
+  document.getElementById('triggerCustomField').style.display = (trigger === 'custom') ? 'block' : 'none';
+}
+
+function updateActionFields() {
+  const actionType = document.getElementById('cronJobActionType').value;
+  document.querySelectorAll('.action-fields').forEach(el => el.style.display = 'none');
+  
+  if (actionType === 'whatsapp_send') {
+    document.getElementById('actionWhatsappFields').style.display = 'block';
+  } else if (actionType === 'email_send') {
+    document.getElementById('actionEmailFields').style.display = 'block';
+  }
+}
+
+function saveCronJob(e) {
+  e.preventDefault();
+  
+  const eventId = document.getElementById('cronJobEventId').value;
+  const trigger = document.getElementById('cronJobTrigger').value;
+  const actionType = document.getElementById('cronJobActionType').value;
+  
+  let triggerDatetime;
+  if (trigger === 'at_event') {
+    triggerDatetime = document.getElementById('eventStart').value;
+  } else if (trigger === 'before') {
+    const value = parseInt(document.getElementById('triggerBeforeValue').value);
+    const unit = document.getElementById('triggerBeforeUnit').value;
+    // Calculate datetime based on event start minus offset
+    const eventStart = new Date(document.getElementById('eventStart').value);
+    const offset = unit === 'minutes' ? value * 60000 : unit === 'hours' ? value * 3600000 : value * 86400000;
+    triggerDatetime = new Date(eventStart.getTime() - offset).toISOString();
+  } else {
+    triggerDatetime = new Date(document.getElementById('triggerCustomDatetime').value).toISOString();
+  }
+  
+  let config = {};
+  if (actionType === 'whatsapp_send') {
+    config = {
+      to: document.getElementById('actionTo').value,
+      message: document.getElementById('actionMessage').value
+    };
+  } else if (actionType === 'email_send') {
+    config = {
+      to: document.getElementById('actionEmailTo').value,
+      subject: document.getElementById('actionEmailSubject').value,
+      body: document.getElementById('actionEmailBody').value
+    };
+  }
+  
+  const data = {
+    event_id: eventId,
+    name: document.getElementById('cronJobName').value,
+    trigger_datetime: triggerDatetime,
+    schedule_type: 'once',
+    actions: [{
+      action_type: actionType,
+      config: config,
+      order: 0
+    }]
+  };
+  
+  fetch('/calendar/api/cron-jobs/create/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': getCookie('csrftoken')
+    },
+    body: JSON.stringify(data)
+  })
+  .then(r => r.json())
+  .then(result => {
+    if (result.success) {
+      closeCronJobModal();
+      alert('✅ Cron job scheduled!');
+    } else {
+      alert('Error: ' + result.error);
+    }
+  })
+  .catch(err => {
+    alert('Error creating cron job: ' + err);
+  });
+}
+
+function testCronJob() {
+  alert('Test run feature coming soon!');
+}
+
 // Form handlers
 function toggleAllDay() {
   const isAllDay = document.getElementById('eventAllDay').checked;

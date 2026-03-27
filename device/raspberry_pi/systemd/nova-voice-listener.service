@@ -1,0 +1,19 @@
+[Unit]
+Description=Headless Nova Voice Listener
+After=network-online.target sound.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nova-voice-listener
+EnvironmentFile=/etc/nova-voice.env
+ExecStartPre=/opt/nova-voice-listener/.venv/bin/python -m nova_listener.preflight
+ExecStart=/opt/nova-voice-listener/.venv/bin/python -m nova_listener.main
+Restart=always
+RestartSec=5
+StartLimitIntervalSec=0
+
+[Install]
+WantedBy=multi-user.target
+

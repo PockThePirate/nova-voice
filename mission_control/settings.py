@@ -110,6 +110,13 @@ NOVA_VOSK_MODEL_PATH = os.environ.get(
 NOVA_VOSK_SAMPLE_RATE = int(os.environ.get("NOVA_VOSK_SAMPLE_RATE", "16000"))
 NOVA_VOSK_MIN_AUDIO_BYTES = int(os.environ.get("NOVA_VOSK_MIN_AUDIO_BYTES", "3200"))
 NOVA_GATEWAY_INTERNAL_TOKEN = os.environ.get("NOVA_GATEWAY_INTERNAL_TOKEN", "")
+# Optional fallback for headless devices when ``NOVA_GATEWAY_INTERNAL_TOKEN`` is empty:
+# ``I@mWho1$@yIam`` + current UTC MMDD.
+NOVA_DEVICE_TOKEN_DERIVED = os.environ.get("NOVA_DEVICE_TOKEN_DERIVED", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
 OPENCLAW_BIN = os.environ.get("OPENCLAW_BIN", "openclaw")
 
 # Provider capability toggles mapped to OpenClaw-style capability boundaries.
