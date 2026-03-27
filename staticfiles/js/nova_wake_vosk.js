@@ -80,8 +80,8 @@
         console.error("Vosk model error:", e);
       });
 
-      // Create recognizer
-      _recognizer = new _model.KaldiRecognizer();
+      // Create recognizer (vosk-browser requires sample rate as first constructor arg)
+      _recognizer = new _model.KaldiRecognizer(Number(_config.sampleRate) || 16000);
       
       _recognizer.on("result", function(message) {
         var text = message.result.text;
@@ -160,7 +160,7 @@
     if (_recognizer) {
       // Vosk-browser doesn't have a direct reset, but we can remove and recreate
       _recognizer.remove();
-      _recognizer = new _model.KaldiRecognizer();
+      _recognizer = new _model.KaldiRecognizer(Number(_config.sampleRate) || 16000);
       _recognizer.on("result", function(message) {
         checkWakePhrase(message.result.text);
       });

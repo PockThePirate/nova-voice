@@ -117,7 +117,7 @@ def _run_voice_orchestration(text: str, source: str) -> tuple[dict, int]:
     """
     _record_event(level="info", source=source, message="Nova voice request received")
     orchestrator = VoiceOrchestrator(
-        agent_provider=OpenClawCLIProvider(agent_name="nova", timeout_seconds=60),
+        agent_provider=OpenClawCLIProvider(agent_name="nova", timeout_seconds=120),
         tts_provider=EdgeTTSProvider(voice_name="en-US-AriaNeural"),
         output_dir=getattr(settings, "NOVA_AUDIO_DIR", settings.BASE_DIR / "static" / "nova_audio"),
         output_url_prefix=_nova_audio_output_url_prefix(),

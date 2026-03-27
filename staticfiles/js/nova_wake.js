@@ -23,10 +23,117 @@
   const hasVosk = typeof window.Vosk !== "undefined";
   const hasWakeEngine = typeof window.NovaWakeEngine !== "undefined";
 
+  /** Longer pause before finalize; dulls intermittent TV/background STT churn. */
+  const COMMAND_SILENCE_MS = 3750;
+  const MAX_COMMAND_CAPTURE_MS = 30000;
+
   let isListening = false;
   let wakeClient = null;
   let recognition = null;
   let isCapturing = false;
+  /** Debounce timers for Web Speech post-wake capture (Vosk path). */
+  let wakeSpeechSilenceTimer = null;
+  let wakeSpeechMaxTimer = null;
+  /** Logs once per second while waiting for COMMAND_SILENCE_MS after last transcript change. */
+  let wakeSilenceTickIntervalId = null;
+  /** Debounce timers for fallback continuous recognition. */
+  let fallbackSilenceTimer = null;
+  let fallbackMaxTimer = null;
+  let fallbackSilenceTickIntervalId = null;
+  /** Second mic stream: energy-based end-of-command (see WakeCommandLevelMonitor). */
+  let wakeLevelMonitor = null;
+
+  function stopWakeLevelMonitor() {
+    if (wakeLevelMonitor !== null) {
+      try {
+        wakeLevelMonitor.stop();
+      } catch (e) {
+        /* ignore */
+      }
+      wakeLevelMonitor = null;
+    }
+  }
+
+  function clearWakeSilenceTick() {
+    if (wakeSilenceTickIntervalId !== null) {
+      clearInterval(wakeSilenceTickIntervalId);
+      wakeSilenceTickIntervalId = null;
+    }
+  }
+
+  function clearFallbackSilenceTick() {
+    if (fallbackSilenceTickIntervalId !== null) {
+      clearInterval(fallbackSilenceTickIntervalId);
+      fallbackSilenceTickIntervalId = null;
+    }
+  }
+
+  /**
+   * Start 1s console logs counting silence since last meaningful transcript change.
+   * @param {string} pathLabel e.g. "startSpeechCapture" or "useSpeechFallback"
+   */
+  function startSilenceSecondLogging(pathLabel) {
+    clearWakeSilenceTick();
+    clearFallbackSilenceTick();
+    var secondsElapsed = 0;
+    var thresholdS = COMMAND_SILENCE_MS / 1000;
+    console.log(
+      "[Wake] TRANSCRIPT silence timer: logging every 1s until",
+      thresholdS,
+      "s since last text change (" + pathLabel + ")"
+    );
+    var log = function () {
+      secondsElapsed += 1;
+      console.log(
+        "[Wake] TRANSCRIPT silence:",
+        secondsElapsed,
+        "s /",
+        thresholdS,
+        "s (no STT change)"
+      );
+    };
+    if (pathLabel === "useSpeechFallback") {
+      fallbackSilenceTickIntervalId = setInterval(log, 1000);
+    } else {
+      wakeSilenceTickIntervalId = setInterval(log, 1000);
+    }
+  }
+
+  function clearWakeSpeechTimers() {
+    clearWakeSilenceTick();
+    if (wakeSpeechSilenceTimer) {
+      clearTimeout(wakeSpeechSilenceTimer);
+      wakeSpeechSilenceTimer = null;
+    }
+    if (wakeSpeechMaxTimer) {
+      clearTimeout(wakeSpeechMaxTimer);
+      wakeSpeechMaxTimer = null;
+    }
+  }
+
+  function clearFallbackTimers() {
+    clearFallbackSilenceTick();
+    if (fallbackSilenceTimer) {
+      clearTimeout(fallbackSilenceTimer);
+      fallbackSilenceTimer = null;
+    }
+    if (fallbackMaxTimer) {
+      clearTimeout(fallbackMaxTimer);
+      fallbackMaxTimer = null;
+    }
+  }
+
+  /**
+   * Normalize transcript for silence-timer dedupe (case/spacing jitter from background audio).
+   * @param {string} s Raw transcript
+   * @returns {string} Lowercase, collapsed whitespace, trimmed
+   */
+  function normalizeForSilenceCompare(s) {
+    if (!s || typeof s !== "string") {
+      return "";
+    }
+    return s.replace(/\s+/g, " ").trim().toLowerCase();
+  }
 
   function setStatus(text) {
     if (statusEl) statusEl.textContent = text;
@@ -75,8 +182,7 @@
       // Start the wake client (continuous audio capture)
       wakeClient = new window.NovaWakeClient({
         onWake: function() {
-          // This gets called by NovaWakeEngine when Vosk detects "nova"
-          console.log("[Wake] Wake event received");
+          console.log("[Wake] Mic streaming to Vosk wake engine");
         }
       });
       await wakeClient.start();
@@ -97,6 +203,10 @@
       wakeClient = null;
     }
 
+    clearWakeSpeechTimers();
+    clearFallbackTimers();
+    stopWakeLevelMonitor();
+
     if (recognition) {
       try { recognition.stop(); } catch(e) {}
       recognition = null;
@@ -108,6 +218,7 @@
   function startSpeechCapture() {
     if (isCapturing) return;
     isCapturing = true;
+    clearWakeSpeechTimers();
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -116,39 +227,140 @@
       return;
     }
 
+    var speechFinalized = false;
+    var lastFullText = "";
+    /** Last text we used to (re)arm the silence timer — avoids reset loops from duplicate onresult. */
+    var lastTextThatMovedSilenceTimer = "";
+
     recognition = new SpeechRecognition();
-    recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.continuous = true;
+    recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    recognition.onresult = function(event) {
-      const transcript = event.results[0][0].transcript;
-      setStatus('Heard: "' + transcript + '"');
-      sendToNova(transcript);
+    function finalizeSpeechCapture() {
+      if (speechFinalized) {
+        return;
+      }
+      speechFinalized = true;
+      stopWakeLevelMonitor();
+      clearWakeSpeechTimers();
+      try {
+        recognition.stop();
+      } catch (e) {
+        /* ignore */
+      }
       isCapturing = false;
+      var t = lastFullText.trim();
+      if (t) {
+        setStatus('Heard: "' + t + '"');
+        sendToNova(t);
+      } else {
+        setStatus("Wake word ready - say 'Nova'");
+      }
+    }
+
+    recognition.onresult = function (event) {
+      var fullFinal = "";
+      var inter = "";
+      var i;
+      for (i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          fullFinal += event.results[i][0].transcript;
+        } else {
+          inter += event.results[i][0].transcript;
+        }
+      }
+      lastFullText = (fullFinal + inter).trim();
+      if (!lastFullText) {
+        return;
+      }
+      var fp = normalizeForSilenceCompare(lastFullText);
+      if (!fp || fp === lastTextThatMovedSilenceTimer) {
+        return;
+      }
+      lastTextThatMovedSilenceTimer = fp;
+      var preview = lastFullText.length > 80 ? lastFullText.substring(0, 80) + "..." : lastFullText;
+      setStatus('Heard: "' + preview + '"');
+      if (wakeSpeechSilenceTimer) {
+        clearTimeout(wakeSpeechSilenceTimer);
+        wakeSpeechSilenceTimer = null;
+      }
+      startSilenceSecondLogging("startSpeechCapture");
+      wakeSpeechSilenceTimer = setTimeout(finalizeSpeechCapture, COMMAND_SILENCE_MS);
     };
 
-    recognition.onerror = function(event) {
+    recognition.onerror = function (event) {
       console.error("[Wake] Speech error:", event.error);
       setStatus("Error: " + event.error);
+      speechFinalized = true;
+      stopWakeLevelMonitor();
+      clearWakeSpeechTimers();
       isCapturing = false;
     };
 
-    recognition.onend = function() {
-      isCapturing = false;
-      // Return to wake word listening
-      setStatus("Wake word ready - say 'Nova'");
+    recognition.onend = function () {
+      if (speechFinalized) {
+        setStatus("Wake word ready - say 'Nova'");
+        return;
+      }
+      console.log(
+        "[Wake] startSpeechCapture: recognition session ended; waiting for silence/max timer"
+      );
     };
+
+    wakeSpeechMaxTimer = setTimeout(finalizeSpeechCapture, MAX_COMMAND_CAPTURE_MS);
+
+    stopWakeLevelMonitor();
+    if (typeof window.WakeCommandLevelMonitor === "function") {
+      wakeLevelMonitor = new window.WakeCommandLevelMonitor({
+        calibrationMs: 320,
+        silenceTimeoutMs: 2000,
+        onLevelSilence: function () {
+          finalizeSpeechCapture();
+        },
+      });
+      wakeLevelMonitor
+        .start()
+        .then(function () {
+          if (wakeLevelMonitor) {
+            wakeLevelMonitor.beginCalibration();
+          }
+        })
+        .catch(function (err) {
+          console.warn("[Wake] Level monitor unavailable:", err);
+          wakeLevelMonitor = null;
+        });
+    }
 
     recognition.start();
   }
 
   function useSpeechFallback() {
-    // Fallback: continuous listening with keyword spotting
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
       setStatus("Speech API not available");
       return;
+    }
+
+    clearFallbackTimers();
+
+    var fallbackAfterWake = false;
+    var lastFull = "";
+    var fallbackDone = false;
+    /** Same as wake path: only re-arm silence when command text changes. */
+    var lastCmdThatMovedSilenceTimer = "";
+
+    /**
+     * Return text after the last "(hey )?nova" in the phrase (command portion).
+     * @param {string} s Full recognition string
+     * @returns {string}
+     */
+    function extractAfterWake(s) {
+      var m = s.match(/(?:hey\s+)?nova\s*(.*)$/i);
+      if (!m) {
+        return "";
+      }
+      return (m[1] || "").trim();
     }
 
     recognition = new SpeechRecognition();
@@ -156,42 +368,141 @@
     recognition.interimResults = true;
     recognition.lang = "en-US";
 
-    let finalTranscript = "";
+    function finalizeFallback() {
+      if (fallbackDone) {
+        return;
+      }
+      fallbackDone = true;
+      stopWakeLevelMonitor();
+      clearFallbackTimers();
+      try {
+        recognition.stop();
+      } catch (e) {
+        /* ignore */
+      }
+      var cmd = extractAfterWake(lastFull);
+      if (cmd) {
+        setStatus('Heard: "' + cmd + '"');
+        sendToNova(cmd);
+      } else {
+        setStatus("Wake word ready - say 'Nova'");
+      }
+    }
 
-    recognition.onresult = function(event) {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          finalTranscript += result[0].transcript;
-          const text = result[0].transcript.toLowerCase();
-          if (text.includes("nova") || text.includes("hey nova")) {
-            setStatus("Wake word detected!");
-            // Extract command after wake word
-            const parts = text.split(/nova|hey nova/i);
-            if (parts[1] && parts[1].trim()) {
-              sendToNova(parts[1].trim());
-            }
-          }
+    recognition.onresult = function (event) {
+      if (fallbackDone) {
+        return;
+      }
+      var fullFinal = "";
+      var inter = "";
+      var i;
+      for (i = 0; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          fullFinal += event.results[i][0].transcript;
         } else {
-          interim += result[0].transcript;
-          if (interim.toLowerCase().includes("nova")) {
-            setStatus("Heard: Nova...");
-          }
+          inter += event.results[i][0].transcript;
         }
       }
+      lastFull = (fullFinal + inter).trim();
+      var low = lastFull.toLowerCase();
+      if (!fallbackAfterWake && (low.indexOf("nova") !== -1 || low.indexOf("hey nova") !== -1)) {
+        fallbackAfterWake = true;
+        lastCmdThatMovedSilenceTimer = "";
+        setStatus("Wake word detected! Listening...");
+        fallbackMaxTimer = setTimeout(finalizeFallback, MAX_COMMAND_CAPTURE_MS);
+
+        stopWakeLevelMonitor();
+        if (typeof window.WakeCommandLevelMonitor === "function") {
+          wakeLevelMonitor = new window.WakeCommandLevelMonitor({
+            calibrationMs: 320,
+            silenceTimeoutMs: 2000,
+            onLevelSilence: function () {
+              finalizeFallback();
+            },
+          });
+          wakeLevelMonitor
+            .start()
+            .then(function () {
+              if (wakeLevelMonitor) {
+                wakeLevelMonitor.beginCalibration();
+              }
+            })
+            .catch(function (err) {
+              console.warn("[Wake] Fallback level monitor unavailable:", err);
+              wakeLevelMonitor = null;
+            });
+        }
+      }
+      if (!fallbackAfterWake) {
+        return;
+      }
+
+      var cmd = extractAfterWake(lastFull);
+      if (!cmd) {
+        return;
+      }
+      var cmdFp = normalizeForSilenceCompare(cmd);
+      if (!cmdFp || cmdFp === lastCmdThatMovedSilenceTimer) {
+        return;
+      }
+      lastCmdThatMovedSilenceTimer = cmdFp;
+
+      var preview = cmd.length > 80 ? cmd.substring(0, 80) + "..." : cmd;
+      setStatus('Heard: "' + preview + '"');
+      if (fallbackSilenceTimer) {
+        clearTimeout(fallbackSilenceTimer);
+        fallbackSilenceTimer = null;
+      }
+      startSilenceSecondLogging("useSpeechFallback");
+      fallbackSilenceTimer = setTimeout(finalizeFallback, COMMAND_SILENCE_MS);
     };
 
-    recognition.onerror = function(event) {
+    recognition.onerror = function (event) {
       console.error("[Wake] Fallback error:", event.error);
+      stopWakeLevelMonitor();
+      clearFallbackTimers();
+      fallbackDone = false;
+      fallbackAfterWake = false;
+      lastFull = "";
+      lastCmdThatMovedSilenceTimer = "";
       if (isListening) {
-        // Restart on error
-        setTimeout(function() {
+        setTimeout(function () {
           if (isListening && recognition) {
-            recognition.start();
+            try {
+              recognition.start();
+            } catch (e) {
+              console.error("[Wake] Fallback restart error:", e);
+            }
           }
         }, 1000);
       }
+    };
+
+    recognition.onend = function () {
+      if (!isListening) {
+        setStatus("Stopped");
+        return;
+      }
+      if (!fallbackDone && (fallbackSilenceTimer != null || fallbackMaxTimer != null)) {
+        console.log(
+          "[Wake] useSpeechFallback: onend while silence/max pending; deferring restart"
+        );
+        return;
+      }
+      clearFallbackTimers();
+      fallbackDone = false;
+      fallbackAfterWake = false;
+      lastFull = "";
+      lastCmdThatMovedSilenceTimer = "";
+      setTimeout(function () {
+        if (isListening && recognition) {
+          try {
+            recognition.start();
+          } catch (e) {
+            console.error("[Wake] Fallback restart error:", e);
+          }
+        }
+      }, 400);
     };
 
     recognition.start();
@@ -267,5 +578,7 @@
     }
   });
 
-  console.log("[Wake] Nova wake word initialized");
+  console.log(
+    "[Wake] Initialized: Wake button active — transcript + mic level timers log here when capturing a command"
+  );
 })();

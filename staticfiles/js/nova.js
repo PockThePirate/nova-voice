@@ -15,6 +15,9 @@
   const MIC_LABEL_IDLE = "Tap to speak";
   const MIC_LABEL_ACTIVE = "Tap to send";
 
+  /** Max wait after PTT stop for WebSocket reply (PTT only; wake uses HTTP fetch). */
+  const NOVA_WS_REPLY_TIMEOUT_MS = 120000;
+
   const form = document.getElementById("nova-voice-form");
   if (!form) {
     return;
@@ -380,7 +383,7 @@
         setStatus("Timed out waiting for server reply.");
         finalizePendingStop("timeout_waiting_reply");
       }
-    }, 25000);
+    }, NOVA_WS_REPLY_TIMEOUT_MS);
   }
 
   function handleMicToggleClick(e) {

@@ -133,6 +133,10 @@
         Play reply
       </button>
       <p class="nova-mic-hint">Tap the round button to start recording. Tap again to stop and send.</p>
+      <div class="nova-wake-row" style="margin-top:10px;display:flex;flex-wrap:wrap;align-items:center;gap:8px;">
+        <button type="button" class="ptt-button" id="nova-wake-btn" title="Listen for &quot;Nova&quot; or &quot;Hey Nova&quot;">👂<br>Wake</button>
+        <div id="nova-wake-status" class="nova-mic-status" aria-live="polite">Wake: off (tap 👂 Wake — timers log in Console panel)</div>
+      </div>
     </form>
   </div>
   <ul class="list">
@@ -215,8 +219,10 @@
 <script src="{% static 'js/vosk.js' %}" defer></script>
 <script src="{% static 'js/nova_stream.js' %}" defer></script>
 <script src="{% static 'js/nova_wake_vosk.js' %}" defer></script>
-<script src="{% static 'js/nova_wake.js' %}" defer></script>
+<script src="{% static 'js/nova_wake_client.js' %}" defer></script>
 <script src="{% static 'js/nova_console_panel.js' %}" defer></script>
+<script src="{% static 'js/nova_wake_levels.js' %}" defer></script>
+<script src="{% static 'js/nova_wake.js' %}" defer></script>
 <script src="{% static 'js/nova.js' %}" defer></script>
 <script src="{% static 'js/mission_focus.js' %}" defer></script>
 <script defer src="{% static 'js/nova_ws_hint.js' %}"></script>
